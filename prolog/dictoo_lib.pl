@@ -297,8 +297,7 @@ oo_call(M,'&'(_,DeRef),Memb,Value):- oo_call(M,DeRef,Memb,Value).
 %oo_call(M,Self,deref,Value):- var(Self),nonvar(Value),!,oo_call(M,Value,deref,Self).
 %oo_call(M,Self,deref,Self):-!.
 
-oo_call(M,Self,Memb,Value):- nonvar(Value),trace_or_throw(oo_call(M,Self,Memb,Value)).
-
+% oo_call(M,Self,Memb,Value):- nonvar(Value),trace_or_throw(oo_call(M,Self,Memb,Value)).
 oo_call(M,Self,Memb,Value):- ((oo_deref(M,Self,NewSelf)-> NewSelf\==Self)),!,oo_call(M,NewSelf,Memb,Value).
 
 % oo_call(M,Self,Memb,Value):- gvar_interp(M,Self,Self,Memb,Value).
