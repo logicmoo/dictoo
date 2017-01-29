@@ -21,40 +21,27 @@ true.
 ?- use_module(library(jpl)).
 true.
 
-?- 
+?- jpl_get('java.awt.Cursor', 'NE_RESIZE_CURSOR', $cursor.value ).
 true.
 
-?- $foo.value = 2.
-false.
-
-?- writeln($foo.value).
-1
+?- $cursor.value == 7.
 true.
 
-?- writeln($foo.get()).
-1
+?- jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,else,try,catch,finally], $my_array.value).
 true.
 
-?- $foo.clear().
+?- writeln($my_array.value.3 = then).
+if=then
 true.
 
-?- writeln($foo.value).
-_8350
-
-?- writeln($bar.set(2).value).
-2
-
-?- $foo.value = xxxxxxxx.
+?- writeln(3-5 = $my_array.value.(3-5)).
+3-5=[if, then, else]
 true.
 
-?- $baz.set(point{ x: ($foo.get()) , y:vy, z:vz}).
+?- writeln(length = $my_array.value.length).
+length=9
 true.
 
-?- writeln($baz.value.x).
-xxxxxxxx
-true.
-
-?- writeln($baz.x). % will error as you havented acceed the value
 
 ```
 
