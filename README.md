@@ -1,22 +1,27 @@
-# SWI-Prolog Pack that adds a new Global Variable syntax to Prolog
+# Dict-like OO Syntax
 
 
-# Installation
+Installation using SWI-Prolog 7.1 or later:
 
-Using SWI-Prolog 7.1 or later:
+    ?- pack_install(dictoo).
 
-    ?- pack_install(gvar_syntax).
+  or
+
+    ?- pack_install('https://github.com/logicmoo/dictoo'). 
 
 This module uses [semantic versioning](http://semver.org/).
 
 Source code available and pull requests accepted at
-http://github.com/logicmoo/gvar_syntax
+http://github.com/logicmoo/dictoo
 
 ```prolog
-?- use_module(library(gvar_syntax)).
+?- use_module(library(dictoo)).
 true.
 
-?- $foo.value = 1.
+?- use_module(library(jpl)).
+true.
+
+?- 
 true.
 
 ?- $foo.value = 2.
@@ -32,7 +37,6 @@ true.
 
 ?- $foo.clear().
 true.
-
 
 ?- writeln($foo.value).
 _8350
@@ -53,10 +57,16 @@ true.
 ?- writeln($baz.x). % will error as you havented acceed the value
 
 ```
-Another Pack  called [udt](https://github.com/logicmoo/udt) add better OO API on these values
+
+Another Pack  called [dictoo](https://github.com/logicmoo/dictoo) 
+adds better OO API on these values
 
 
-@author Douglas Miles <logicmoo@gmail.com>
-```
-@license None
-```
+
+[BSD 2-Clause License](LICENSE.md)
+
+Copyright (c) 2017, 
+Douglas Miles <logicmoo@gmail.com>
+All rights reserved.
+
+

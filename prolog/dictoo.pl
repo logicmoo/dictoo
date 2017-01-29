@@ -24,7 +24,7 @@
 
 */
 
-:- system:multifile(system:'.'(_,_)).
+:- system:multifile((.)/2).
 :- Head=..['.',Name, Func], system:assert(( Head :- notrace(is_oo(Name)), oo_call(Name,Func,_))).
 
 :- clause('$dicts':'.'(Dict, Func, Value),BODY),
@@ -34,9 +34,11 @@
 :- 'system':abolish('$dicts':'.'/3).
 'system':'.'(Dict, Func, Value) :- dictoo(Dict,Func,Value).
 
-dictoo(Self,Memb,Value):- notrace(is_oo(Self,Name)) -> oo_call(Name,Memb,Value);
+dictoo(Self,Memb,Value):- 
+  notrace(is_oo(Self)) 
+   -> oo_call(Self,Memb,Value);
    % Call Previous Method
-   '$dict_dot3'(Self, Memb, Value).
+   '$dictoo_dot3'(Self, Memb, Value).
 
 
 % :- use_module(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
@@ -70,7 +72,7 @@ put_oo(Key, UDT, Value):- oo_set(UDT,Key, Value).
 
 get_oo(Key, UDT, Value):- oo_call(UDT,Key, Value).
 
-
+jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
 jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
 jpl_call(A,B,C):- jpl_get(A,B,C).
 

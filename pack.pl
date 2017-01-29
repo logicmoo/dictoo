@@ -8,3 +8,4 @@ author( 'Douglas R. Miles', 'logicmoo@gmail.com' ).
 packager( 'Douglas R. Miles', 'logicmoo@gmail.com' ).
 maintainer( 'Douglas R. Miles', 'logicmoo@gmail.com' ).
 home('https://github.com/logicmoo/dictoo').
+requires(gvar_syntax).
