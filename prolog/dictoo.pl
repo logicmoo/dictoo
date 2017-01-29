@@ -32,13 +32,7 @@
 
 :- redefine_system_predicate('system':'.'(_Dict, _Func, _Value)).
 :- 'system':abolish('$dicts':'.'/3).
-'system':'.'(Dict, Func, Value) :- dictoo(Dict,Func,Value).
-
-dictoo(Self,Memb,Value):- 
-  notrace(is_oo(Self)) 
-   -> oo_call(Self,Memb,Value);
-   % Call Previous Method
-   '$dictoo_dot3'(Self, Memb, Value).
+'system':'.'(Dict, Func, Value) :- oo_call(Dict,Func,Value).
 
 
 % :- use_module(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
@@ -47,9 +41,20 @@ dictoo(Self,Memb,Value):-
 
 :- meta_predicate(fail_on_missing(0)).
 % fail_on_missing(G):-current_predicate(G),!,call(G).
-fail_on_missing(G):-catch(G,error(existence_error(_,_),_),fail).
+fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
 
-is_oo(O):- (attvar(O);is_dict(O);fail_on_missing(jpl_is_ref(O));fail_on_missing(cli_is_object(O));fail_on_missing(cli_is_struct(O))),!.
+
+%% is_gvar(+Self,-Name) is det.
+%
+%  Tests to see if Self
+%  is $(Name) or was_gvar($Name).
+%    
+is_oo(O):- 
+ ((var(O),!,attvar(O));
+  O=was_gvar(_);  
+  fail_on_missing(jpl_is_ref(O));
+  fail_on_missing(cli_is_object(O));
+  fail_on_missing(cli_is_struct(O))),!.
 
 
 oo(O):- multivar(O).
@@ -76,13 +81,17 @@ jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
 jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
 jpl_call(A,B,C):- jpl_get(A,B,C).
 
-
-oo_call(Self,Memb,Value):- notrace(is_dict(Self)) ,!, '$dictoo_dot3'(Self, Memb, Value).
 oo_call(Self,Memb,Value):- notrace((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
-oo_call(Self,Memb,Value):- notrace((atom(Memb),get_attr(Self, Memb, Value);var(Self))),!,freeze(Value,set_ref(Self, Memb, Value)).
-oo_call(Self,Memb,Value):- notrace((jpl_is_ref(Self))),!,jpl_call(Self, Memb, Value).
-oo_call(Self,Memb,Value):-  notrace(fail_on_missing(cli_is_object(Self))),!,fail_on_missing(cli_call(Self, Memb, Value)).
-oo_call(Self,Memb,Value):-  notrace(fail_on_missing(cli_is_struct(Self))),!,fail_on_missing(cli_call(Self, Memb, Value)).
+oo_call(Self,Memb,Value):- is_dict(Self),!, '$dictoo_dot3'(Self, Memb, Value).
+oo_call(was_gref(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
+oo_call('$'(Self),Memb,Value):- !,gvar_syntax:gvar_interp(Self,Memb,Value).
+oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,jpl_call(Self, Memb, Value).
+oo_call(jpl(Self),Memb,Value):- jpl_call(Self, Memb, Value).
+
+oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,set_ref(Self, Memb, Value)).
+
+oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_object(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
+oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_struct(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
 oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),deref,Value).
 
 
@@ -104,8 +113,7 @@ to_member_path(C,[C]).
 */
 
 oo_deref(Obj,RObj):- var(Obj),!,once(get_attr(Obj,oo,binding(_,RObj));Obj=RObj),!.
-oo_deref(GVar,Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
-oo_deref(Self,NewSelf):- get_attr(Self, oo, NewSelf),!.
+oo_deref('&'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref(Value,Value):- \+ compound(Value),!.
 oo_deref(cl_eval(Call),Result):-is_list(Call),!,cl_eval(Call,Result).
 oo_deref(cl_eval(Call),Result):-!,nonvar(Call),oo_deref(Call,CallE),!,call(CallE,Result).
@@ -117,15 +125,11 @@ oo_deref(Value,Value).
 
 
 
-
 get_oo(Key, Dict, Value, NewDict, NewDict) :- is_dict(Dict),!,
    get_dict(Key, Dict, Value, NewDict, NewDict).
 get_oo(Key, Dict, Value, NewDict, NewDict) :-
         get_oo(Key, Dict, Value),
         put_oo(Key, Dict, NewDict, NewDict).
-
-
-
 
 
 

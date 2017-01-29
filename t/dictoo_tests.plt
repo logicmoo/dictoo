@@ -15,7 +15,7 @@ test(2):- jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,el
 
 test(3):- writeln($my_array.value.3 = then).
 
-test(4):- writeln(3-5 = $my_array.value.3-5).
+test(4):- writeln(3-5 = $my_array.value.(3-5)).
 
 test(5):- writeln(length = $my_array.value.length).
 
