@@ -21,4 +21,4 @@ test(5):- writeln(length = $my_array.value.length).
 
 all_tests:- forall(test(_),true).
 
-
+:- listing(test(_)).

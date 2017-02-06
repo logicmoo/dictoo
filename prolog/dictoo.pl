@@ -2,15 +2,15 @@
   oo/1,
   oo/2,
   is_oo/1,
+  is_oo_invokable/2,
   oo_call/3,
-  jpl_call/3,
+  oo_jpl_call/3,
   oo_deref/2,
   oo_inner_class_begin/1,
   oo_inner_class_end/1,
   oo_class_field/1,
   oo_class_begin/1,
   oo_class_end/1]).
-
 
 /** <module> dictoo - Dict-like OO Syntax Pack
 
@@ -24,15 +24,29 @@
 
 */
 
-:- system:multifile((.)/2).
-:- Head=..['.',Name, Func], system:assert(( Head :- notrace(is_oo(Name)), oo_call(Name,Func,_))).
+:- use_module(library(gvar_syntax)).
+:- use_module(library(dicts)).
 
-:- clause('$dicts':'.'(Dict, Func, Value),BODY),
-   asserta(('$dictoo_dot3'(Dict, Func, Value):- '$dicts':BODY)).
 
+:- '$set_source_module'('$dicts').
+:- findall(('.'(Dict, Func, Value) :- BODY),clause('.'(Dict, Func, Value),BODY),List),
+  nb_setval(dictoo, List).
 :- redefine_system_predicate('system':'.'(_Dict, _Func, _Value)).
 :- 'system':abolish('$dicts':'.'/3).
-'system':'.'(Dict, Func, Value) :- oo_call(Dict,Func,Value).
+:- if(\+ current_prolog_flag(dictoo,non_extendable)).
+:- dynamic('$dicts':'.'/3).
+:- multifile('$dicts':'.'/3).
+:- module_transparent('$dicts':'.'/3).
+:- endif.
+:- nb_getval(dictoo,WAS),
+ compile_aux_clauses([(('$dicts':'.'(Self,Func,Value):- 
+   dictoo:is_oo_invokable(Self,DeRef),!,dictoo:oo_call(DeRef,Func,Value)))|WAS]).
+:- if(current_prolog_flag(dictoo,non_extendable)).
+:- compile_predicates(['$dicts':'.'(_Dict, _Func, _Value)]).
+:- endif.
+:- system:import('$dicts':'.'/3).
+:- system:lock_predicate('$dicts':'.'/3).
+:- '$set_source_module'(dictoo).
 
 
 % :- use_module(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
@@ -43,18 +57,29 @@
 % fail_on_missing(G):-current_predicate(G),!,call(G).
 fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
 
+%% is_oo_invokable(+Self,-DeRef) is det.
+%
+%  DeRef''s an OO Whatnot and ckecks if invokable
+%    
+is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 
-%% is_gvar(+Self,-Name) is det.
+
+%% is_oo(+Self) is det.
 %
 %  Tests to see if Self
-%  is $(Name) or was_gvar($Name).
+%   Has  Member Functions
 %    
-is_oo(O):- 
- ((var(O),!,attvar(O));
-  O=was_gvar(_);  
+is_oo(O):-  
+ notrace((((var(O),!,attvar(O));
+  (((O=was_dictoo(_);
+     O=jclass(_);
+     O=jpl(_);
+     O= class(_);
+     O='&'(_) ;
+     O='&'(_,_) ;
   fail_on_missing(jpl_is_ref(O));
   fail_on_missing(cli_is_object(O));
-  fail_on_missing(cli_is_struct(O))),!.
+  fail_on_missing(cli_is_struct(O)))))))),!.
 
 
 oo(O):- multivar(O).
@@ -77,28 +102,30 @@ put_oo(Key, UDT, Value):- oo_set(UDT,Key, Value).
 
 get_oo(Key, UDT, Value):- oo_call(UDT,Key, Value).
 
-jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
-jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
-jpl_call(A,B,C):- jpl_get(A,B,C).
+oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
+oo_jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
+oo_jpl_call(A,B,C):- jpl_get(A,B,C).
 
 oo_call(Self,Memb,Value):- notrace((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
-oo_call(Self,Memb,Value):- is_dict(Self),!, '$dictoo_dot3'(Self, Memb, Value).
-oo_call(was_gref(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
-oo_call('$'(Self),Memb,Value):- !,gvar_syntax:gvar_interp(Self,Memb,Value).
-oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,jpl_call(Self, Memb, Value).
-oo_call(jpl(Self),Memb,Value):- jpl_call(Self, Memb, Value).
+%oo_call(Self,Memb,Value):- is_dict(Self),!, '$dictoo_dot3'(Self, Memb, Value).
+oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
+%oo_call('$'(Self),Memb,Value):- !,gvar_syntax:gvar_interp(Self,Memb,Value).
+oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
+oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
+oo_call(class(Self),Memb,Value):- !, cli_call(Self, Memb, Value).
 
-oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,set_ref(Self, Memb, Value)).
+oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,oo_jpl_call(Self, Memb, Value).
+oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
 
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_object(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_struct(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
-oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),deref,Value).
+oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),Value,_).
 
 
 %oo_call(Self,deref,Value):- var(Self),nonvar(Value),!,oo_call(Value,deref,Self).
 %oo_call(Self,deref,Self):-!.
 oo_call(Self,Memb,Value):- var(Value),!,freeze(Value,set_ref(Self, Memb, Value)).
-oo_call(Self,Memb,Var):-var(Var),!,Var=oo_ref(Self,Memb).
+oo_call(Self,Memb,Var):- var(Var),!,Var='&'(Self,Memb).
 oo_call(Self,Memb,Value):- throw(oo_call(Self,Memb,Value)).
 
 /*
@@ -113,6 +140,7 @@ to_member_path(C,[C]).
 */
 
 oo_deref(Obj,RObj):- var(Obj),!,once(get_attr(Obj,oo,binding(_,RObj));Obj=RObj),!.
+%oo_deref('$'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref('&'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref(Value,Value):- \+ compound(Value),!.
 oo_deref(cl_eval(Call),Result):-is_list(Call),!,cl_eval(Call,Result).
