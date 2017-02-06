@@ -1,6 +1,6 @@
 :- module(dictoo, [
   oo/1,
-  oo/2,
+  oo_bind/2,
   is_oo/1,
   is_oo_invokable/2,
   oo_call/3,
@@ -53,7 +53,7 @@
 % :- use_module(atts).
 % :- use_module(multivar).
 
-:- meta_predicate(fail_on_missing(0)).
+:- meta_predicate(fail_on_missing(*)).
 % fail_on_missing(G):-current_predicate(G),!,call(G).
 fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
 
@@ -82,8 +82,8 @@ is_oo(O):-
   fail_on_missing(cli_is_struct(O)))))))),!.
 
 
-oo(O):- multivar(O).
-oo(O,Value):-multivar(O),put_attr(O,oo,binding(O,Value)).
+oo(O):- call(ignore,multivar(O)).
+oo_bind(O,Value):- oo(O),put_attr(O,oo,binding(O,Value)).
 oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev),Prev.equals(Value).
 
 
@@ -112,7 +112,7 @@ oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
 %oo_call('$'(Self),Memb,Value):- !,gvar_syntax:gvar_interp(Self,Memb,Value).
 oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
-oo_call(class(Self),Memb,Value):- !, cli_call(Self, Memb, Value).
+oo_call(class(Self),Memb,Value):- fail_on_missing(cli_call(Self, Memb, Value)),!.
 
 oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,oo_jpl_call(Self, Memb, Value).
 oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
@@ -124,7 +124,7 @@ oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(
 
 %oo_call(Self,deref,Value):- var(Self),nonvar(Value),!,oo_call(Value,deref,Self).
 %oo_call(Self,deref,Self):-!.
-oo_call(Self,Memb,Value):- var(Value),!,freeze(Value,set_ref(Self, Memb, Value)).
+oo_call(Self,Memb,Value):- var(Value),!,freeze(Value,put_oo(Self, Memb, Value)).
 oo_call(Self,Memb,Var):- var(Var),!,Var='&'(Self,Memb).
 oo_call(Self,Memb,Value):- throw(oo_call(Self,Memb,Value)).
 
@@ -143,7 +143,7 @@ oo_deref(Obj,RObj):- var(Obj),!,once(get_attr(Obj,oo,binding(_,RObj));Obj=RObj),
 %oo_deref('$'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref('&'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref(Value,Value):- \+ compound(Value),!.
-oo_deref(cl_eval(Call),Result):-is_list(Call),!,cl_eval(Call,Result).
+oo_deref(cl_eval(Call),Result):-is_list(Call),!,fail_on_missing(cl_eval(Call,Result)).
 oo_deref(cl_eval(Call),Result):-!,nonvar(Call),oo_deref(Call,CallE),!,call(CallE,Result).
 oo_deref(Value,Value):- jpl_is_ref(Value),!.
 %%oo_deref([A|B],Result):-!, maplist(oo_deref,[A|B],Result).
