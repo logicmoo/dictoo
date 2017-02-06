@@ -7,12 +7,12 @@ Installation using SWI-Prolog 7.1 or later:
 
   or
 
-    ?- pack_install('https://github.com/logicmoo/dictoo'). 
+    ?- pack_install('https://github.com/TeamSPoon/dictoo'). 
 
 This module uses [semantic versioning](http://semver.org/).
 
 Source code available and pull requests accepted at
-http://github.com/logicmoo/dictoo
+http://github.com/TeamSPoon/dictoo
 
 ```prolog
 ?- use_module(library(dictoo)).
@@ -44,9 +44,6 @@ true.
 
 
 ```
-
-Another Pack  called [dictoo](https://github.com/logicmoo/dictoo) 
-adds better OO API on these values
 
 
 
