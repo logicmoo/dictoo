@@ -27,10 +27,17 @@
 :- use_module(library(gvar_syntax)).
 :- use_module(library(dicts)).
 
+:- if(\+ nb_current(dictoo,_)).
 
 :- '$set_source_module'('$dicts').
 :- findall(('.'(Dict, Func, Value) :- BODY),clause('.'(Dict, Func, Value),BODY),List),
-  nb_setval(dictoo, List).
+   nb_setval(dictoo, List).
+
+% :- nb_getval(dictoo, List),last(List,('.'(Dict, Func, Value):- BODY)),asserta('dictoo':'dot_dict'(Dict, Func, Value):- BODY).
+
+:- nb_getval(dictoo, List),last(List,('.'(Dict, Func, Value):- BODY)),compile_aux_clauses(['dictoo':'dot_dict'(Dict, Func, Value):- BODY]).
+  
+
 :- redefine_system_predicate('system':'.'(_Dict, _Func, _Value)).
 :- 'system':abolish('$dicts':'.'/3).
 :- if(\+ current_prolog_flag(dictoo,non_extendable)).
@@ -40,12 +47,15 @@
 :- endif.
 :- nb_getval(dictoo,WAS),
  compile_aux_clauses([(('$dicts':'.'(Self,Func,Value):- 
-   dictoo:is_oo_invokable(Self,DeRef),!,dictoo:oo_call(DeRef,Func,Value)))|WAS]).
+   is_oo_invokable(Self,DeRef),!,oo_call_first(DeRef,Func,Value)))|WAS]).
+:- '$dicts':import(dictoo:is_oo_invokable/2).
+:- '$dicts':import(dictoo:oo_call_first/3).
 :- if(current_prolog_flag(dictoo,non_extendable)).
 :- compile_predicates(['$dicts':'.'(_Dict, _Func, _Value)]).
 :- endif.
 :- system:import('$dicts':'.'/3).
 :- system:lock_predicate('$dicts':'.'/3).
+:- endif.
 :- '$set_source_module'(dictoo).
 
 
@@ -56,12 +66,6 @@
 :- meta_predicate(fail_on_missing(*)).
 % fail_on_missing(G):-current_predicate(G),!,call(G).
 fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
-
-%% is_oo_invokable(+Self,-DeRef) is det.
-%
-%  DeRef''s an OO Whatnot and ckecks if invokable
-%    
-is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 
 
 %% is_oo(+Self) is det.
@@ -77,6 +81,9 @@ is_oo(O):-
      O= class(_);
      O='&'(_) ;
      O='&'(_,_) ;
+     functor(O,'.',2) ;
+     O='$'(_) ;
+     is_dict(O) ;
   fail_on_missing(jpl_is_ref(O));
   fail_on_missing(cli_is_object(O));
   fail_on_missing(cli_is_struct(O)))))))),!.
@@ -88,7 +95,7 @@ oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev),Prev.equals(Value).
 
 
 oo_set(UDT,Key, Value):- attvar(UDT),!,put_attr(UDT,Key, Value).
-oo_set(UDT,Key, Value):- jpl_set(UDT,Key,Value).
+oo_set(UDT,Key, Value):- jpl_is_ref(UDT),jpl_set(UDT,Key,Value).
 
 
 put_oo(Key, UDT, Value, NewUDT):- is_dict(UDT),!,put_dict(Key, UDT, Value, NewUDT).
@@ -106,21 +113,44 @@ oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
 oo_jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
 oo_jpl_call(A,B,C):- jpl_get(A,B,C).
 
-oo_call(Self,Memb,Value):- notrace((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
-%oo_call(Self,Memb,Value):- is_dict(Self),!, '$dictoo_dot3'(Self, Memb, Value).
+
+%% is_oo_invokable(+Self,-DeRef) is det.
+%
+%  DeRef''s an OO Whatnot and ckecks if invokable
+%    
+
+is_oo_invokable(Was,Was):- is_oo(Was),!.
+% is_oo_invokable(Was,Was):- b_getval('$oo_stack',Was)
+is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
+
+:- module_transparent(oo_call/3).
+:- module_transparent(oo_call_first/3).
+
+:- nb_setval('$oo_stack',[]).
+oo_call_first(A,B,C):-  b_getval('$oo_stack',Was),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
+
+oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
+oo_call('$'(Self),Memb,Value):- gvar_call(Self,Memb,Value),!.
+oo_call('$'(GVar),add(Memb,V),was_gvar($GVar)):- atom(GVar),nb_current(GVar,Self),!,put_dict(Memb,Self,V,NewSelf),nb_setval(GVar,NewSelf).
+oo_call('$'(GVar),Memb,Value):- atom(GVar),nb_current(GVar,Self),!,oo_call(Self,Memb,Value),nb_setval(GVar,Self).
+oo_call('&'(Self,_),Memb,Value):- gvar_call(Self,Memb,Value),!.
+oo_call('&'(_,Self),Memb,Value):- oo_call(Self,Memb,Value),!.
+oo_call(Self,set(Memb,Value),'&'(Self)):- is_dict(Self),!,nb_set_dict(Memb,Self,Value).
+
+oo_call(Self,Memb,Value):- is_dict(Self),!,dot_dict(Self, Memb, Value).
 oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
-%oo_call('$'(Self),Memb,Value):- !,gvar_syntax:gvar_interp(Self,Memb,Value).
 oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(class(Self),Memb,Value):- fail_on_missing(cli_call(Self, Memb, Value)),!.
+oo_call(Self,Memb,Value):- notrace((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
 
 oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,oo_jpl_call(Self, Memb, Value).
-oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
 
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_object(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_struct(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
 oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),Value,_).
 
+oo_call('&'(_,DeRef),Memb,Value):- oo_call(DeRef,Memb,Value).
 
 %oo_call(Self,deref,Value):- var(Self),nonvar(Value),!,oo_call(Value,deref,Self).
 %oo_call(Self,deref,Self):-!.
@@ -140,7 +170,7 @@ to_member_path(C,[C]).
 */
 
 oo_deref(Obj,RObj):- var(Obj),!,once(get_attr(Obj,oo,binding(_,RObj));Obj=RObj),!.
-%oo_deref('$'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
+% oo_deref('$'(GVar),'&'(GVar,Value)):- atom(GVar),nb_current(GVar,Value),!.
 oo_deref('&'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM,Value).
 oo_deref(Value,Value):- \+ compound(Value),!.
 oo_deref(cl_eval(Call),Result):-is_list(Call),!,fail_on_missing(cl_eval(Call,Result)).
@@ -150,7 +180,6 @@ oo_deref(Value,Value):- jpl_is_ref(Value),!.
 %%oo_deref(Call,Result):- call(Call,Result),!.
 oo_deref(Head,HeadE):- Head=..B,maplist(oo_deref,B,A),HeadE=..A,!.
 oo_deref(Value,Value).
-
 
 
 get_oo(Key, Dict, Value, NewDict, NewDict) :- is_dict(Dict),!,
@@ -166,7 +195,7 @@ get_oo(Key, Dict, Value, NewDict, NewDict) :-
 %   Test for predefined functions on Objects or evaluate a user-defined
 %   function.
 
-eval_oo_function(Func, Tag, UDT, Value) :- is_dict(Tag),!,
+eval_oo_function(Func, Tag, UDT, Value) :- is_dict(UDT),!,
    '$dicts':eval_dict_function(Func, Tag, UDT, Value).
 
 eval_oo_function(get(Key), _, UDT, Value) :-
