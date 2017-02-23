@@ -4,13 +4,20 @@
   is_oo/1,
   is_oo_invokable/2,
   oo_call/3,
+  oo_call_first/3,
   oo_jpl_call/3,
   oo_deref/2,
   oo_inner_class_begin/1,
   oo_inner_class_end/1,
   oo_class_field/1,
   oo_class_begin/1,
-  oo_class_end/1]).
+  oo_class_end/1,
+
+          oo_get_attr/3,
+          oo_put_attr/3,
+          oo_get_attrs/2,
+          oo_put_attrs/2
+  ]).
 
 /** <module> dictoo - Dict-like OO Syntax Pack
 
@@ -23,6 +30,7 @@
     modify it.
 
 */
+:- set_module(class(library)).
 
 :- use_module(library(gvar_syntax)).
 :- use_module(library(dicts)).
@@ -120,14 +128,14 @@ oo_jpl_call(A,B,C):- jpl_get(A,B,C).
 %    
 
 is_oo_invokable(Was,Was):- is_oo(Was),!.
-% is_oo_invokable(Was,Was):- b_getval('$oo_stack',Was)
+% is_oo_invokable(Was,Was):- b_getval('$oo_stack',[Was|_])
 is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 
 :- module_transparent(oo_call/3).
 :- module_transparent(oo_call_first/3).
 
 :- nb_setval('$oo_stack',[]).
-oo_call_first(A,B,C):-  b_getval('$oo_stack',Was),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
+oo_call_first(A,B,C):-  (nb_getval('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
 
 oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
 oo_call('$'(Self),Memb,Value):- gvar_call(Self,Memb,Value),!.
@@ -261,5 +269,35 @@ oo_inner_class_end(Inner):- is_oo_class(inner(Name,Inner)),!,oo_class_end(inner(
 
 oo_class_field(Inner):- is_oo_class(Name),!,asserta(is_oo_class_field(Name,Inner)).
 
+
+
+oo_get_attr(V,A,Value):- var(V),!,get_attr(V,A,Value),!.
+oo_get_attr('$VAR'(Name),_,_):- atom(Name),!,fail.
+oo_get_attr('$VAR'(Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr('avar'(Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr('avar'(_,Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr(Self,Memb,Value):-oo_call(Self,Memb,Value).
+% oo_get_attr(V,A,Value):- trace_or_throw(oo_get_attr(V,A,Value)).
+
+oo_put_attrs(V,Att3s):- var(V),!,put_attrs(V,Att3s),!.
+oo_put_attrs(VAR,Att3s):- VAR='$VAR'(Name), atom(Name),!,setarg(1,VAR, att(vn, Name, Att3s)).
+oo_put_attrs(VAR,Att3s):- VAR='$VAR'(_Att3),!,setarg(1,VAR, Att3s).
+oo_put_attrs(VAR,Att3s):- VAR='avar'(_Att3),!,setarg(1,VAR, Att3s).
+oo_put_attrs(VAR,Att3s):- VAR='avar'(_,_),!,setarg(2,VAR, Att3s).
+oo_put_attrs(V,Att3s):- trace_or_throw(oo_put_attrs(V,Att3s)).
+
+oo_get_attrs(V,Att3s):- var(V),!,get_attrs(V,Att3s),!.
+oo_get_attrs('$VAR'(Name),_):- atom(Name),!,fail.
+oo_get_attrs('$VAR'(Att3s),Att3):-!,Att3s=Att3.
+oo_get_attrs('avar'(Att3s),Att3):-!,Att3s=Att3.
+oo_get_attrs('avar'(_,Att3s),Att3):-!,Att3s=Att3.
+% oo_get_attrs(V,Value):- trace_or_throw(oo_get_attrs(V,Value)).
+
+oo_put_attr(V,A,Value):- var(V),!,put_attr(V,A,Value),!.
+oo_put_attr(VAR,A,Value):- VAR='$VAR'(Name), atom(Name),!,setarg(1,VAR, att(vn, Name, att(A,Value, []))).
+oo_put_attr(VAR,A,Value):- VAR='$VAR'(Att3),!,setarg(1,VAR, att(A,Value,Att3)).
+oo_put_attr(VAR,A,Value):- VAR='avar'(Att3),!,setarg(1,VAR, att(A,Value,Att3)).
+oo_put_attr(VAR,A,Value):- VAR='avar'(_,Att3),!,setarg(2,VAR, att(A,Value,Att3)).
+oo_put_attr(V,A,Value):- trace_or_throw(oo_put_attr(V,A,Value)).
 
 
