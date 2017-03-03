@@ -128,14 +128,14 @@ oo_jpl_call(A,B,C):- jpl_get(A,B,C).
 %    
 
 is_oo_invokable(Was,Was):- is_oo(Was),!.
-% is_oo_invokable(Was,Was):- b_getval('$oo_stack',[Was|_])
+% is_oo_invokable(Was,Was):- nb_current('$oo_stack',[Was|_])
 is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 
 :- module_transparent(oo_call/3).
 :- module_transparent(oo_call_first/3).
 
 :- nb_setval('$oo_stack',[]).
-oo_call_first(A,B,C):-  (nb_getval('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
+oo_call_first(A,B,C):-  (nb_current('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
 
 oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
 oo_call('$'(Self),Memb,Value):- gvar_call(Self,Memb,Value),!.
