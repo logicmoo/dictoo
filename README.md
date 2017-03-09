@@ -3,12 +3,7 @@
 
 Installation using SWI-Prolog 7.1 or later:
 
-    ?- pack_install(dictoo).
-
-  or
-
-    ?- pack_install('https://github.com/TeamSPoon/dictoo'). 
-
+  `?- pack_install('https://github.com/TeamSPoon/dictoo.git'). `
 
 
 Source code available and pull requests accepted at
