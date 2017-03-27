@@ -30,20 +30,42 @@
     modify it.
 
 */
-:- set_module(class(library)).
 
 :- use_module(library(gvar_syntax)).
 :- use_module(library(dicts)).
 
-:- if(\+ nb_current(dictoo,_)).
+:- set_module(class(library)).
+
+:- module_transparent
+  oo/1,
+  oo_bind/2,
+  is_oo/1,
+  is_oo_invokable/2,
+  oo_call/3,
+  oo_call_first/3,
+  oo_jpl_call/3,
+  oo_deref/2,
+  oo_inner_class_begin/1,
+  oo_inner_class_end/1,
+  oo_class_field/1,
+  oo_class_begin/1,
+  oo_class_end/1,
+
+          oo_get_attr/3,
+          oo_put_attr/3,
+          oo_get_attrs/2,
+          oo_put_attrs/2.
+
+:- if( (\+ nb_current('$dictoo_src_hack',_), \+ prolog_load_context(reload,true) )).
 
 :- '$set_source_module'('$dicts').
 :- findall(('.'(Dict, Func, Value) :- BODY),clause('.'(Dict, Func, Value),BODY),List),
-   nb_setval(dictoo, List).
+   nb_setval('$dictoo_src_hack', List).
 
 % :- nb_getval(dictoo, List),last(List,('.'(Dict, Func, Value):- BODY)),asserta('dictoo':'dot_dict'(Dict, Func, Value):- BODY).
 
-:- nb_getval(dictoo, List),last(List,('.'(Dict, Func, Value):- BODY)),compile_aux_clauses(['dictoo':'dot_dict'(Dict, Func, Value):- BODY]).
+:- nb_getval('$dictoo_src_hack', List),last(List,('.'(Dict, Func, Value):- BODY)),
+ compile_aux_clauses(['dictoo':'dot_dict'(Dict, Func, Value):- BODY]).
   
 
 :- redefine_system_predicate('system':'.'(_Dict, _Func, _Value)).
@@ -53,9 +75,9 @@
 :- multifile('$dicts':'.'/3).
 :- module_transparent('$dicts':'.'/3).
 :- endif.
-:- nb_getval(dictoo,WAS),
+:- nb_getval('$dictoo_src_hack',WAS),
  compile_aux_clauses([(('$dicts':'.'(Self,Func,Value):- 
-   is_oo_invokable(Self,DeRef),!,oo_call_first(DeRef,Func,Value)))|WAS]).
+   dictoo:is_oo_invokable(Self,DeRef),!,oo_call_first(DeRef,Func,Value)))|WAS]).
 :- '$dicts':import(dictoo:is_oo_invokable/2).
 :- '$dicts':import(dictoo:oo_call_first/3).
 :- if(current_prolog_flag(dictoo,non_extendable)).
@@ -63,8 +85,11 @@
 :- endif.
 :- system:import('$dicts':'.'/3).
 :- system:lock_predicate('$dicts':'.'/3).
-:- endif.
+
 :- '$set_source_module'(dictoo).
+
+:- endif.  % $dictoo_src_hack
+
 
 
 % :- use_module(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
@@ -92,6 +117,7 @@ is_oo(O):-
      functor(O,'.',2) ;
      O='$'(_) ;
      is_dict(O) ;
+     is_logtalk_object(O),
   fail_on_missing(jpl_is_ref(O));
   fail_on_missing(cli_is_object(O));
   fail_on_missing(cli_is_struct(O)))))))),!.
@@ -100,6 +126,11 @@ is_oo(O):-
 oo(O):- call(ignore,multivar(O)).
 oo_bind(O,Value):- oo(O),put_attr(O,oo,binding(O,Value)).
 oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev),Prev.equals(Value).
+
+logtalk_ready :- current_predicate(logtalk:current_logtalk_flag/2).
+
+is_logtalk_object(O):- logtalk_ready, call(logtalk:current_object(O)).
+
 
 
 oo_set(UDT,Key, Value):- attvar(UDT),!,put_attr(UDT,Key, Value).
@@ -145,7 +176,7 @@ oo_call('&'(Self,_),Memb,Value):- gvar_call(Self,Memb,Value),!.
 oo_call('&'(_,Self),Memb,Value):- oo_call(Self,Memb,Value),!.
 oo_call(Self,set(Memb,Value),'&'(Self)):- is_dict(Self),!,nb_set_dict(Memb,Self,Value).
 
-oo_call(Self,Memb,Value):- is_dict(Self),!,dot_dict(Self, Memb, Value).
+oo_call(Self,Memb,Value):- is_dict(Self),!,'dictoo':dot_dict(Self, Memb, Value).
 oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
 oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
@@ -187,6 +218,7 @@ oo_deref(Value,Value):- jpl_is_ref(Value),!.
 %%oo_deref([A|B],Result):-!, maplist(oo_deref,[A|B],Result).
 %%oo_deref(Call,Result):- call(Call,Result),!.
 oo_deref(Head,HeadE):- Head=..B,maplist(oo_deref,B,A),HeadE=..A,!.
+oo_deref(Value,Value):-current_object(Value).
 oo_deref(Value,Value).
 
 
@@ -299,5 +331,46 @@ oo_put_attr(VAR,A,Value):- VAR='$VAR'(Att3),!,setarg(1,VAR, att(A,Value,Att3)).
 oo_put_attr(VAR,A,Value):- VAR='avar'(Att3),!,setarg(1,VAR, att(A,Value,Att3)).
 oo_put_attr(VAR,A,Value):- VAR='avar'(_,Att3),!,setarg(2,VAR, att(A,Value,Att3)).
 oo_put_attr(V,A,Value):- trace_or_throw(oo_put_attr(V,A,Value)).
+
+
+
+
+%% this_file_file_predicates_are_exported() is det.
+%
+% All Module Predicates Are Exported.
+
+:- module_transparent(this_file_file_predicates_are_exported/0).
+this_file_file_predicates_are_exported:- current_prolog_flag(xref,true),!.
+this_file_file_predicates_are_exported:-
+ source_location(S,_), prolog_load_context(module,LC),
+ this_file_file_predicates_are_exported(S,LC).
+
+:- module_transparent(this_file_file_predicates_are_exported/2).
+this_file_file_predicates_are_exported(S,LC):-
+ forall(source_file(M:H,S),
+ ignore((functor(H,F,A), \+ atom_concat('$',_,F),
+  ((ignore(((atom(LC),atom(M), LC\==M,M:export(M:F/A),LC:multifile(M:F/A),fail,atom_concat('$',_,F),LC:import(M:F/A)))))),
+  ignore(((\+ atom_concat('$',_,F),\+ atom_concat('__aux',_,F),LC:export(M:F/A), 
+  (current_predicate(system:F/A)->true; system:import(M:F/A)))))))).
+
+%% this_file_file_predicates_are_transparent() is det.
+%
+% All Module Predicates Are Transparent.
+:- module_transparent(this_file_file_predicates_are_transparent/0).
+this_file_file_predicates_are_transparent:-
+ source_location(S,_), prolog_load_context(module,LC),
+ this_file_file_predicates_are_transparent(S,LC).
+
+:- module_transparent(this_file_file_predicates_are_transparent/2).
+this_file_file_predicates_are_transparent(S,_LC):- 
+ forall(source_file(M:H,S),
+ (functor(H,F,A),
+  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), 
+  \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A])))))).
+
+
+:- 
+   this_file_file_predicates_are_exported,
+   this_file_file_predicates_are_transparent.
 
 
