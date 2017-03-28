@@ -36,59 +36,6 @@
 
 :- set_module(class(library)).
 
-:- module_transparent
-  oo/1,
-  oo_bind/2,
-  is_oo/1,
-  is_oo_invokable/2,
-  oo_call/3,
-  oo_call_first/3,
-  oo_jpl_call/3,
-  oo_deref/2,
-  oo_inner_class_begin/1,
-  oo_inner_class_end/1,
-  oo_class_field/1,
-  oo_class_begin/1,
-  oo_class_end/1,
-
-          oo_get_attr/3,
-          oo_put_attr/3,
-          oo_get_attrs/2,
-          oo_put_attrs/2.
-
-:- if( (\+ nb_current('$dictoo_src_hack',_), \+ prolog_load_context(reload,true) )).
-
-:- '$set_source_module'('$dicts').
-:- findall(('.'(Dict, Func, Value) :- BODY),clause('.'(Dict, Func, Value),BODY),List),
-   nb_setval('$dictoo_src_hack', List).
-
-% :- nb_getval(dictoo, List),last(List,('.'(Dict, Func, Value):- BODY)),asserta('dictoo':'dot_dict'(Dict, Func, Value):- BODY).
-
-:- nb_getval('$dictoo_src_hack', List),last(List,('.'(Dict, Func, Value):- BODY)),
- compile_aux_clauses(['dictoo':'dot_dict'(Dict, Func, Value):- BODY]).
-  
-
-:- redefine_system_predicate('system':'.'(_Dict, _Func, _Value)).
-:- 'system':abolish('$dicts':'.'/3).
-:- if(\+ current_prolog_flag(dictoo,non_extendable)).
-:- dynamic('$dicts':'.'/3).
-:- multifile('$dicts':'.'/3).
-:- module_transparent('$dicts':'.'/3).
-:- endif.
-:- nb_getval('$dictoo_src_hack',WAS),
- compile_aux_clauses([(('$dicts':'.'(Self,Func,Value):- 
-   dictoo:is_oo_invokable(Self,DeRef),!,oo_call_first(DeRef,Func,Value)))|WAS]).
-:- '$dicts':import(dictoo:is_oo_invokable/2).
-:- '$dicts':import(dictoo:oo_call_first/3).
-:- if(current_prolog_flag(dictoo,non_extendable)).
-:- compile_predicates(['$dicts':'.'(_Dict, _Func, _Value)]).
-:- endif.
-:- system:import('$dicts':'.'/3).
-:- system:lock_predicate('$dicts':'.'/3).
-
-:- '$set_source_module'(dictoo).
-
-:- endif.  % $dictoo_src_hack
 
 
 
@@ -100,12 +47,14 @@
 % fail_on_missing(G):-current_predicate(G),!,call(G).
 fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
 
+was_dictoo(_).
 
 %% is_oo(+Self) is det.
 %
 %  Tests to see if Self
 %   Has  Member Functions
 %    
+is_oo(_):- !. % assume we''ll take care of dicts as well
 is_oo(O):-  
  notrace((((var(O),!,attvar(O));
   (((O=was_dictoo(_);
@@ -166,6 +115,7 @@ is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 :- module_transparent(oo_call_first/3).
 
 :- nb_setval('$oo_stack',[]).
+oo_call_first(Self, Func, Value):- is_dict(Self),!,dot_dict(Self, Func, Value).
 oo_call_first(A,B,C):-  (nb_current('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
 
 oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
@@ -176,7 +126,7 @@ oo_call('&'(Self,_),Memb,Value):- gvar_call(Self,Memb,Value),!.
 oo_call('&'(_,Self),Memb,Value):- oo_call(Self,Memb,Value),!.
 oo_call(Self,set(Memb,Value),'&'(Self)):- is_dict(Self),!,nb_set_dict(Memb,Self,Value).
 
-oo_call(Self,Memb,Value):- is_dict(Self),!,'dictoo':dot_dict(Self, Memb, Value).
+oo_call(Self,Memb,Value):- is_dict(Self),!, dot_dict(Self, Memb, Value).
 oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
 oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
@@ -193,8 +143,10 @@ oo_call('&'(_,DeRef),Memb,Value):- oo_call(DeRef,Memb,Value).
 
 %oo_call(Self,deref,Value):- var(Self),nonvar(Value),!,oo_call(Value,deref,Self).
 %oo_call(Self,deref,Self):-!.
+
+% oo_call(Self,Memb,Value):- gvar_interp(Self,Self,Memb,Value).
 oo_call(Self,Memb,Value):- var(Value),!,freeze(Value,put_oo(Self, Memb, Value)).
-oo_call(Self,Memb,Var):- var(Var),!,Var='&'(Self,Memb).
+oo_call(Self,Memb,Value):- var(Value),!,Value='&'(Self,Memb).
 oo_call(Self,Memb,Value):- throw(oo_call(Self,Memb,Value)).
 
 /*
@@ -367,6 +319,18 @@ this_file_file_predicates_are_transparent(S,_LC):-
  (functor(H,F,A),
   ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), 
   \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A])))))).
+
+
+:- multifile(gvar_syntax:dot_syntax_hook/3).
+:- dynamic(gvar_syntax:dot_syntax_hook/3).
+:- module_transparent(gvar_syntax:dot_syntax_hook/3).
+gvar_syntax:dot_syntax_hook(NewName, Memb, Value):-oo_call_first(NewName, Memb, Value).
+
+
+:- multifile(gvar_syntax:is_dot_hook/2).
+:- dynamic(gvar_syntax:is_dot_hook/2).
+:- module_transparent(gvar_syntax:is_dot_hook/2).
+% gvar_syntax:is_dot_hook(I,O):-is_oo_invokable(I,O).
 
 
 :- 
