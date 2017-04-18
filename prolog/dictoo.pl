@@ -83,7 +83,7 @@ is_logtalk_object(O):- logtalk_ready, call(logtalk:current_object(O)).
 
 
 oo_set(UDT,Key, Value):- attvar(UDT),!,put_attr(UDT,Key, Value).
-oo_set(UDT,Key, Value):- jpl_is_ref(UDT),jpl_set(UDT,Key,Value).
+oo_set(UDT,Key, Value):- fail_on_missing(jpl_is_ref(UDT)),jpl_set(UDT,Key,Value).
 
 
 put_oo(Key, UDT, Value, NewUDT):- is_dict(UDT),!,put_dict(Key, UDT, Value, NewUDT).
@@ -99,7 +99,8 @@ get_oo(Key, UDT, Value):- oo_call(UDT,Key, Value).
 
 oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
 oo_jpl_call(A,B,C):- B=..[H|L], fail_on_missing(jpl_call(A,H,L,C)),!.
-oo_jpl_call(A,B,C):- jpl_get(A,B,C).
+oo_jpl_call(A,B,C):- fail_on_missing(jpl_get(A,B,C)).
+
 
 
 %% is_oo_invokable(+Self,-DeRef) is det.
@@ -166,11 +167,11 @@ oo_deref('&'(GVar),Value):- atom(GVar),nb_current(GVar,ValueM),!,oo_deref(ValueM
 oo_deref(Value,Value):- \+ compound(Value),!.
 oo_deref(cl_eval(Call),Result):-is_list(Call),!,fail_on_missing(cl_eval(Call,Result)).
 oo_deref(cl_eval(Call),Result):-!,nonvar(Call),oo_deref(Call,CallE),!,call(CallE,Result).
-oo_deref(Value,Value):- jpl_is_ref(Value),!.
+oo_deref(Value,Value):- fail_on_missing(jpl_is_ref(Value)),!.
 %%oo_deref([A|B],Result):-!, maplist(oo_deref,[A|B],Result).
 %%oo_deref(Call,Result):- call(Call,Result),!.
 oo_deref(Head,HeadE):- Head=..B,maplist(oo_deref,B,A),HeadE=..A,!.
-oo_deref(Value,Value):-current_object(Value).
+oo_deref(Value,Value):- is_logtalk_object(Value).
 oo_deref(Value,Value).
 
 
