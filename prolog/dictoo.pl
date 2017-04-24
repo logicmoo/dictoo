@@ -12,7 +12,6 @@
   oo_class_field/1,
   oo_class_begin/1,
   oo_class_end/1,
-
           oo_get_attr/3,
           oo_put_attr/3,
           oo_get_attrs/2,
@@ -335,7 +334,7 @@ gvar_syntax:dot_syntax_hook(NewName, Memb, Value):-oo_call_first(NewName, Memb, 
 
 
 :- 
-   this_file_file_predicates_are_exported,
+   % this_file_file_predicates_are_exported,
    this_file_file_predicates_are_transparent.
 
 
