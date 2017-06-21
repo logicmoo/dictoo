@@ -287,39 +287,6 @@ oo_put_attr(V,A,Value):- trace_or_throw(oo_put_attr(V,A,Value)).
 
 
 
-%% this_file_file_predicates_are_exported() is det.
-%
-% All Module Predicates Are Exported.
-
-:- module_transparent(this_file_file_predicates_are_exported/0).
-this_file_file_predicates_are_exported:- current_prolog_flag(xref,true),!.
-this_file_file_predicates_are_exported:-
- source_location(S,_), prolog_load_context(module,LC),
- this_file_file_predicates_are_exported(S,LC).
-
-:- module_transparent(this_file_file_predicates_are_exported/2).
-this_file_file_predicates_are_exported(S,LC):-
- forall(source_file(M:H,S),
- ignore((functor(H,F,A), \+ atom_concat('$',_,F),
-  ((ignore(((atom(LC),atom(M), LC\==M,M:export(M:F/A),LC:multifile(M:F/A),fail,atom_concat('$',_,F),LC:import(M:F/A)))))),
-  ignore(((\+ atom_concat('$',_,F),\+ atom_concat('__aux',_,F),LC:export(M:F/A), 
-  (current_predicate(system:F/A)->true; system:import(M:F/A)))))))).
-
-%% this_file_file_predicates_are_transparent() is det.
-%
-% All Module Predicates Are Transparent.
-:- module_transparent(this_file_file_predicates_are_transparent/0).
-this_file_file_predicates_are_transparent:-
- source_location(S,_), prolog_load_context(module,LC),
- this_file_file_predicates_are_transparent(S,LC).
-
-:- module_transparent(this_file_file_predicates_are_transparent/2).
-this_file_file_predicates_are_transparent(S,_LC):- 
- forall(source_file(M:H,S),
- (functor(H,F,A),
-  ignore(((\+ predicate_property(M:H,transparent), module_transparent(M:F/A), 
-  \+ atom_concat('__aux',_,F),debug(modules,'~N:- module_transparent((~q)/~q).~n',[F,A])))))).
-
 
 :- multifile(gvar_syntax:dot_syntax_hook/3).
 :- dynamic(gvar_syntax:dot_syntax_hook/3).
@@ -332,9 +299,7 @@ gvar_syntax:dot_syntax_hook(NewName, Memb, Value):-oo_call_first(NewName, Memb, 
 :- module_transparent(gvar_syntax:is_dot_hook/2).
 % gvar_syntax:is_dot_hook(I,O):-is_oo_invokable(I,O).
 
-
 :- 
-   % this_file_file_predicates_are_exported,
-   this_file_file_predicates_are_transparent.
-
+ %  gvar_file_predicates_are_exported,
+   gvar_file_predicates_are_transparent.
 
