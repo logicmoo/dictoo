@@ -7,6 +7,10 @@
   oo_call_first/3,
   oo_jpl_call/3,
   oo_deref/2,
+  oo_put_attr/3,
+  oo_put_attrs/2,               
+  oo_get_attr/3,
+  oo_get_attrs/2,
   oo_inner_class_begin/1,
   oo_inner_class_end/1,
   oo_class_field/1,
@@ -73,7 +77,7 @@ is_oo(O):-
 
 oo(O):- call(ignore,multivar(O)).
 oo_bind(O,Value):- oo(O),put_attr(O,oo,binding(O,Value)).
-oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev),Prev.equals(Value).
+oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev)->Prev.equals(Value);true.
 
 logtalk_ready :- current_predicate(logtalk:current_logtalk_flag/2).
 
@@ -256,13 +260,22 @@ oo_class_field(Inner):- is_oo_class(Name),!,asserta(is_oo_class_field(Name,Inner
 
 
 oo_get_attr(V,A,Value):- var(V),!,get_attr(V,A,Value),!.
-oo_get_attr('$VAR'(Name),_,_):- atom(Name),!,fail.
-oo_get_attr('$VAR'(Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
-oo_get_attr('avar'(Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
-oo_get_attr('avar'(_,Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr('$VAR'(Name),N,V):- atom(Name),!,N=vn,V=Name.
+oo_get_attr('$VAR'(Att3),A,Value):- !, oo_put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr('avar'(Att3),A,Value):- !, oo_put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
+oo_get_attr('avar'(_,Att3),A,Value):- !, oo_put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
 oo_get_attr(Self,Memb,Value):-oo_call(Self,Memb,Value).
 % oo_get_attr(V,A,Value):- trace_or_throw(oo_get_attr(V,A,Value)).
 
+
+put_atts_list([N=V|Attrs],Var):- oo_put_attr(Var,N,V),!,put_atts_list(Attrs,Var).
+put_atts_list([NV|Attrs],Var):- !,NV=..[N,V],oo_put_attr(Var,N,V),!,put_atts_list(Attrs,Var).
+put_atts_list([],_):-!.
+
+%:- if(exists_source(library(atts))).
+%:- user:use_module(library(atts)).
+oo_put_attrs(V,Attrs):- must_be(nonvar,Attrs),is_list(Attrs),!,put_atts_list(Attrs,V).
+%:- endif.
 oo_put_attrs(V,Att3s):- var(V),!,put_attrs(V,Att3s),!.
 oo_put_attrs(VAR,Att3s):- VAR='$VAR'(Name), atom(Name),!,setarg(1,VAR, att(vn, Name, Att3s)).
 oo_put_attrs(VAR,Att3s):- VAR='$VAR'(_Att3),!,setarg(1,VAR, Att3s).
@@ -300,6 +313,6 @@ gvar_syntax:dot_syntax_hook(NewName, Memb, Value):-oo_call_first(NewName, Memb, 
 % gvar_syntax:is_dot_hook(I,O):-is_oo_invokable(I,O).
 
 :- 
- %  gvar_file_predicates_are_exported,
+   gvar_file_predicates_are_exported,
    gvar_file_predicates_are_transparent.
 
