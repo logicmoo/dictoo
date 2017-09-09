@@ -48,7 +48,7 @@
 
 :- meta_predicate(fail_on_missing(*)).
 % fail_on_missing(G):-current_predicate(G),!,call(G).
-fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
+fail_on_missing(G):- quietly(catch(G,error(existence_error(_,_),_),fail)).
 
 was_dictoo(_).
 
@@ -59,7 +59,7 @@ was_dictoo(_).
 %    
 is_oo(_):- !. % assume we''ll take care of dicts as well
 is_oo(O):-  
- notrace((((var(O),!,attvar(O));
+ quietly((((var(O),!,attvar(O));
   (((O=was_dictoo(_);
      O=jclass(_);
      O=jpl(_);
@@ -122,7 +122,7 @@ is_oo_invokable(Was,Ref):- oo_deref(Was,Ref),!,(Was\==Ref;is_oo(Ref)).
 oo_call_first(Self, Func, Value):- is_dict(Self),!,dot_dict(Self, Func, Value).
 oo_call_first(A,B,C):-  (nb_current('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(A,B,C).
 
-oo_call(Self,Memb,Value):- notrace((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
+oo_call(Self,Memb,Value):- quietly((atom(Memb),(get_attr(Self, Memb, Value);var(Self)))),!,freeze(Value,put_oo(Self, Memb, Value)).
 oo_call('$'(Self),Memb,Value):- gvar_call(Self,Memb,Value),!.
 oo_call('$'(GVar),add(Memb,V),was_gvar($GVar)):- atom(GVar),nb_current(GVar,Self),!,put_dict(Memb,Self,V,NewSelf),nb_setval(GVar,NewSelf).
 oo_call('$'(GVar),Memb,Value):- atom(GVar),nb_current(GVar,Self),!,oo_call(Self,Memb,Value),nb_setval(GVar,Self).
@@ -135,13 +135,13 @@ oo_call('&'(Self),Memb,Value):- !,oo_call(Self,Memb,Value).
 oo_call(jpl(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(jclass(Self),Memb,Value):- !, oo_jpl_call(Self, Memb, Value).
 oo_call(class(Self),Memb,Value):- fail_on_missing(cli_call(Self, Memb, Value)),!.
-oo_call(Self,Memb,Value):- notrace((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
+oo_call(Self,Memb,Value):- quietly((oo_deref(Self,NewSelf)-> NewSelf\=Self)),!,oo_call(NewSelf,Memb,Value).
 
 oo_call(Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,oo_jpl_call(Self, Memb, Value).
 
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_object(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
 oo_call(Self,Memb,Value):-  fail_on_missing(cli_is_struct(Self)),!,fail_on_missing(cli_call(Self, Memb, Value)).
-oo_call(Class,Inner,Value):- notrace(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),Value,_).
+oo_call(Class,Inner,Value):- quietly(is_oo_class(inner(Class,Inner))),!,oo_call(inner(Class,Inner),Value,_).
 
 oo_call('&'(_,DeRef),Memb,Value):- oo_call(DeRef,Memb,Value).
 
