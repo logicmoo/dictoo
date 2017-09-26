@@ -1,5 +1,17 @@
-:- module(dictoo_declarations, []).
+:- if((  % FYI, this "if" prevents this file from getting autoload support
+       \+ current_prolog_flag(xref, true),
+       Type = decl,
+         prolog_load_context(module, SM),
+         (prolog_load_context(file, This), unload_file(This)),       
+         INFO = dot_cache:using_dot_type(Type,SM),
+         (clause(INFO,true)->true;asserta(INFO)),
+         % debug(dictoo(Type),'~N% ~w~n',[INFO]),
+         format(user_error,'~N% ~w~n',[INFO]))).
+:- endif.
 
+:- module(dictoo_declarations, 
+  [dictoo_decl_te/4,
+   use_dictoo_te/5]).
 
 /** <module> dictoo_declarations - OO Overloads term_expansion in files
 
@@ -13,28 +25,46 @@
 
 */
 
-:- use_module(library(gvar_syntax)).
-:- use_module(library(dicts)).
-:- use_module(library(dictoo)).
-
 :- set_module(class(library)).
+:- multifile(dot_cache:using_dot_type/2).
+:- dynamic(dot_cache:using_dot_type/2).
+:- reexport(library(dictoo_lib)).
+:- multifile(dot_cache:dictoo_decl/8).
+:- dynamic(dot_cache:dictoo_decl/8).
+:- discontiguous(dot_cache:dictoo_decl/8).
 
-% foo:($current_file.value) = X :- prolog_load_context(file,X).
-dictoo_expand_decl(EMDVARMEMB,Body,dictoo:dictoo_decl(M,Var,Memb,Value,Body)):-
-  strip_module(EMDVARMEMB,M,(DVARMEMB=Value)),DVARMEMB=..['.',$Var,Memb],!.
+:- module_transparent(expand_dictoo_decl/5).
 
-% $current_file.value = X :- prolog_load_context(file,X).
-dictoo_expand_decl(MDVARMEMB=Value,Body,dictoo:dictoo_decl(M,Var,Memb,Value,Body)):-
-  strip_module(MDVARMEMB,M,DVARMEMB), compound(DVARMEMB),DVARMEMB=..['.',$Var,Memb],!.
+expand_dictoo_decl(SM,CM,Head,Body,dot_cache:dictoo_decl(OP ,SM,CM,M,Var,Memb,Value,Body)):- 
+  expand_dictoo_head(Head,OP,M,Var,Memb,Value).
 
   
- 
+:- module_transparent(dictoo_decl_te/4).
+dictoo_decl_te(SM,M,(Head:-Body),OUT):- expand_dictoo_decl(SM,M,Head,Body,OUT).
+dictoo_decl_te(SM,M,(Head),OUT):- expand_dictoo_decl(SM,M,Head,true,OUT).
 
-term_expansion((EMDVARMEMB:-Body),OUT):- dictoo_expand_decl(EMDVARMEMB,Body,OUT).
-term_expansion((EMDVARMEMB),OUT):- dictoo_expand_decl(EMDVARMEMB,true,OUT).
+:- module_transparent(use_dictoo_te/5).
+use_dictoo_te(MIN,P,SM,M,IN):-   
+   \+ current_prolog_flag(dictoo_syntax,false),
+   prolog_load_context(module, SM),  
+  % (debugging(dictoo(decl))->trace;true),
+   dot_cache:using_dot_type(decl,SM),
+   nonvar(P),
+   nb_current('$term',Term),MIN==Term,
+   strip_module(SM:MIN,M,IN),   
+   \+ current_prolog_flag(xref, true),
+   compound(IN),
+   IN \= (:- _),!.
 
-                  
-:- 
-   gvar_file_predicates_are_exported,
-   gvar_file_predicates_are_transparent.
+:- user:import(dictoo_declarations:use_dictoo_te/5).
+
+% :- module_transparent(user:term_expansion/4).
+:- multifile(user:term_expansion/4).
+:- dynamic(user:term_expansion/4).
+user:term_expansion(MIN,P,OUT,PO):-
+   notrace(use_dictoo_te(MIN,P,SM,M,IN)),
+   (debugging(dictoo(decl))->trace;true),
+   M:dictoo_decl_te(SM,M,IN,OUT),
+   PO = P.
+
 

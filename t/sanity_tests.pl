@@ -23,7 +23,7 @@ $current_file.value = X :- prolog_load_context(file,X).
 
 :- writeln($current_file.value).
 
-:- listing(dictoo_decl/5).
+:- listing(dictoo_decl/7).
 
 all_tests:- forall(test(_),true).
 
