@@ -138,8 +138,6 @@ is_oo_invokable(Was,Ref):- strip_module(Was,M,Self),oo_deref(M,Self,Ref),!,((Sel
 :- module_transparent(oo_call_dot_hook/4).
 
 
-dict_op_call(=, M, GVar, Memb, Value):- oo_call(M,GVar,Memb,Value).
-
 :- nb_setval('$oo_stack',[]).
 oo_call_dot_hook(M,Self, Func, Value):- is_dict(Self), M:dot_dict(Self, Func, Value),!.
 oo_call_dot_hook(M,A,B,C):-  (M:nb_current('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(M,A,B,C).
@@ -151,7 +149,8 @@ oo_call(M,Self,Memb,Value):- notrace((atom(Memb),var(Self),var(Value))),freeze(S
 
 oo_call(M,'$was_dictoo'(CM,Self),Memb,Value):- var(Self),new_oo(M,Self,NewSelf),!,M:oo_call(CM,NewSelf,Memb,Value).
 
-oo_call(_,'$'(NameSpace), Memb,Value):-  dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),DMemb,Value,Call),member_func_unify(DMemb,Memb),!,
+oo_call(_,'$'(NameSpace), Memb,Value):-  
+   dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),DMemb,Value,Call),member_func_unify(DMemb,Memb),!,
    show_call(dictoo(core), From:Call).
 
 oo_call(M,'$'(GVar),Memb,Value):- Memb==value,atom(GVar), M:nb_linkval(GVar,Value), freeze(Value,gvar_put(M, GVar, Value)),!.
@@ -188,11 +187,14 @@ oo_call(M,'&'(_,DeRef),Memb,Value):- oo_call(M,DeRef,Memb,Value).
 %oo_call(M,Self,deref,Self):-!.
 
 oo_call(M,Self,Memb,Value):- nonvar(Value),throw(oo_call(M,Self,Memb,Value)).
+
 % oo_call(M,Self,Memb,Value):- gvar_interp(M,Self,Self,Memb,Value).
 
 oo_call(M,'$'(NameSpace), Memb,Value):-  nonvar(NameSpace),dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),Unk,Value,Call),!,
   throw(M:dot_cache:dictoo_decl(= ,From,NameSpace,Memb-->Unk,Value,Call)),fail.
 
+oo_call(_,M:Self,Memb,Value):- !,oo_call(M,Self,Memb,Value).
+oo_call(_,Self,Memb,Value):- Value =.. ['.', Self,Memb],!.
 oo_call(M,Self,Memb,Value):- throw(oo_call(M,Self,Memb,Value)).
 oo_call(M,Self,Memb,Value):- var(Value),!,freeze(Value, put_oo(M,Memb,Self, Value)).
 oo_call(M,Self,Memb,Value):- var(Value),!,freeze(Value, put_oo(M,Memb,Self, Value)).
@@ -230,45 +232,6 @@ get_oo(M,Key, Dict, Value, NewDict, NewDict) :- is_dict(Dict),!,
 get_oo(M,Key, Dict, Value, NewDict, NewDict) :-
         get_oo(M,Key, Dict, Value),
         put_oo(M,Key, Dict, NewDict, NewDict).
-
-
-dictoo_expanded_op( = ).
-dictoo_expanded_op( := ).
-
-:- module_transparent(expand_dictoo_head/6).
-
-expand_dictoo_head(Head,_OP,_M,_VarO,_Memb,_Value):- \+ compound(Head),!,fail.
-  
-% $mod:var.memb = value.                            
-expand_dictoo_head(Head,OP,M,VarO,Memb,Value):-
-  Head =.. [OP , :(DM,VarMemb),Value],
-  compound(DM),
-  DM =..[F,M],
-  dictoo_expanded_op(OP),
-  VarMemb=..['.',Var,Memb],!,
-  VarO = [F,Var].
-
-% mod: $var.memb = value.
-expand_dictoo_head(Head,OP,M,Var,Memb,Value):-
-  Head =.. [OP , :(M,VarMemb),Value],
-  compound(VarMemb),
-  dictoo_expanded_op(OP),
-  VarMemb=..['.',Var,Memb],!.
-  
-% $var.memb = value.
-expand_dictoo_head(Head,OP,M,Var,Memb,Value):-
-  Head =.. [OP , MVarMemb,Value],
-  compound(MVarMemb),
-  dictoo_expanded_op(OP),
-  strip_module(MVarMemb,M,VarMemb),
-  VarMemb=..['.',Var,Memb],!.
-
-% $var.memb mod:= value.
-expand_dictoo_head(M:Head,OP,M,Var,Memb,Value):- 
-  Head =.. [OP , VarMemb,Value],
-  compound(VarMemb),
-  dictoo_expanded_op(OP),
-  VarMemb=..['.',Var,Memb],!.
 
 
 
@@ -357,11 +320,6 @@ oo_inner_class_end(Inner):- is_oo_class(inner(Name,Inner)),!,oo_class_end(inner(
 
 oo_class_field(Inner):- is_oo_class(Name),!,asserta(is_oo_class_field(Name,Inner)).
 
-
-
-dictoo_expand_query(Goal, Goal, Bindings, Bindings):- nb_setval('$query_term',Goal-Bindings).
-
-
 :- multifile(gvs:dot_overload_hook/4).
 :- dynamic(gvs:dot_overload_hook/4).
 :- module_transparent(gvs:dot_overload_hook/4).
@@ -374,130 +332,8 @@ gvs:dot_overload_hook(M,NewName, Memb, Value):- dot_cache:using_dot_type(_,M)
 gvs:is_dot_hook(M,Self,Func,Value):- dot_cache:using_dot_type(_,M) 
   -> is_oo_hooked(M,Self,Func,Value).
 
-
-show_gvar(Name):-
- (nb_current(Name,Value)->true;Value='$missing'),
- format('~w =~t~12|~p~n', [Name, Value]).
-
-show_dictoo:- 
-   listing(dot_cache:dictoo_decl/8),
-   listing(dot_cache:using_dot_type/2),   
-   maplist(show_gvar,['$goal_term','$term','$variable_names','$query_term']),
-   forall(prolog_debug:debugging(dictoo(Name), Value, _),
-    format('~w =~t~12|~p~n', [dictoo(Name), Value])),
-   ignore(print_toplevel_variables),
-   !.
-
-
-dictoo_ge(Goal, P, _):- nop(var(P)),%  \+ source_location(_,_), 
-    % notrace(use_dot(_Type)), 
-   debugging(dictoo(syntax)),
-   show_call(dictoo(syntax),nb_setval('$goal_term',Goal)),fail.
-dictoo_ge(Goal, _P, dict_op_call(OP,M,Var,Memb,Value) ):-
-   prolog_load_context(module, M),
-   show_success(dictoo(goal_expansion),
-   M:(expand_dictoo_head(Goal,OP,M,Var,Memb,Value),use_dot(_Type,M))),!.
-
-
-
 :- 
    gvar_file_predicates_are_exported,
    gvar_file_predicates_are_transparent.
-
-
-
-:- user:dynamic(expand_query/4).
-:- user:multifile(expand_query/4).
-
-user:expand_query(Goal, _, Bindings, _ ):- notrace(use_dot(_Type)), nb_setval('$query_term',Goal-Bindings),fail.
-
-user:expand_query(Goal, Expanded, Bindings, ExpandedBindings):- % notrace(use_dot(_Type)),
-    % Have vars to expand and varnames are empty
-    notrace((Bindings\==[],prolog_load_context(variable_names,Vs), Vs ==[])),
-    b_setval('$variable_names', Bindings),  % this prevents the loop
-    % debug(expand_query,'~q',[b_setval('$variable_names', Bindings)]),
-    (toplevel_variables_expand_query(Goal, Expanded0, Bindings, ExpandedBindings0) -> true; 
-      (Goal = Expanded0, Bindings = ExpandedBindings0)),
-    (user:expand_query(Expanded0, Expanded, ExpandedBindings0, ExpandedBindings) -> true ; 
-     (Expanded0 = Expanded, ExpandedBindings0 = ExpandedBindings)).
-
-make_top_var(Name,Var,Value):- prolog_load_context(module, M),
-   Value = Var,
-   use_dot(_Core,M),!,
-   % '$was_dictoo'(M,Var),
-   oo(Var),
-   add_var_to_env(Name,Var),
-   toplevel_variables:assert_binding(Name,Value).
-
-expand_vars(_, Var, Var) -->
-    { var(Var) },
-    !.
-expand_vars(_, Atomic, Atomic) -->
-    { atomic(Atomic) },
-    !.
-expand_vars(Bindings, $(Var), Value) -->
-    { toplevel_variables:name_var(Var, Bindings, Name),
-      (   toplevel_variables:toplevel_var(Name, Value)
-      ->  !
-      ;   (show_call(make_top_var(Name,Var,Value))-> true ; throw(error(existence_error(answer_variable, Name), _)))
-      )
-    },
-    [ Name = Value ].
-expand_vars(Bindings, Term, Expanded) -->
-    { compound_name_arity(Term, Name, Arity),
-      !,
-      compound_name_arity(Expanded, Name, Arity),
-      End is Arity + 1
-    },
-    expand_args(1, End, Bindings, Term, Expanded).
-
-
-expand_args(End, End, _, _, _) --> !.
-expand_args(Arg0, End, Bindings, T0, T) -->
-    { arg(Arg0, T0, V0),
-      arg(Arg0, T, V1),
-      Arg1 is Arg0 + 1
-    },
-    expand_vars(Bindings, V0, V1),
-    expand_args(Arg1, End, Bindings, T0, T).
-
-
-toplevel_variables_expand_query(Query, Expanded, Bindings, ExpandedBindings) :- !,
-    phrase(expand_vars(Bindings, Query, Expanded), NewBindings),
-    term_variables(Expanded, Free),
-    toplevel_variables:delete_bound_vars(Bindings, Free, ExpandedBindings0),
-    '$append'(ExpandedBindings0, NewBindings, ExpandedBindings),
-    (   toplevel_variables:verbose,
-        Query \=@= Expanded
-    ->  toplevel_variables:print_query(Expanded, ExpandedBindings)
-    ;   true
-    ).
-
-toplevel_variables_expand_query(Goal, Expanded, Bindings, ExpandedBindings):- 
-   \+ current_prolog_flag(toplevel_mode, recursive),
-   use_dot(core),!,
-  catch(toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings), Warn,
-   ((dmsg(Warn), Goal = Expanded, Bindings = ExpandedBindings))).
-
-toplevel_variables_expand_query(Goal, Expanded, Bindings, ExpandedBindings):-
-  toplevel_variables:expand_query(Goal, Expanded, Bindings, ExpandedBindings).
-
-
-/*
-user:expand_query(Goal, Expanded, Bindings, ExpandedBindings):- current_prolog_flag(dictoo_expand_query,toplevel_variables),
-  dictoo_expand_query(Goal, Expanded1, Bindings, Bindings1),
-  (toplevel_variables:expand_query(Expanded1, Expanded, Bindings1, ExpandedBindings)
-    ->true; (Expanded=Expanded1, Bindings1=ExpandedBindings)).
-
-user:expand_query(Goal, Expanded, Bindings, ExpandedBindings):-   use_dot(_Type), current_prolog_flag(dictoo_expand_query,true),!,
-  dictoo_expand_query(Goal, Expanded, Bindings, ExpandedBindings).
-*/
-
-:- system:dynamic(goal_expansion/4).
-:- system:multifile(goal_expansion/4).
-
-system:goal_expansion(Goal, _, _, _ ):- notrace(use_dot(_Type)), nb_setval('$goal_term',Goal),fail.
-system:goal_expansion(Goal, P, NewGoal, PO):- dictoo_ge(Goal, P, NewGoal),P=PO.
-
 
 

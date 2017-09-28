@@ -1,10 +1,8 @@
-
-:- use_module(library(gvar_syntax)).
+:- module(dictoo_tests, []).
 
 :- if(exists_source(library(jpl))).
 :- use_module(library(jpl)).
 :- endif.
-
 
 :- if(exists_source(library(must_trace))).
 :- use_module(library(must_trace)).
@@ -13,6 +11,7 @@
 :- autoload.
 
 :- use_module(library(dictoo)).
+:- use_module(library(dictoo_declarations)).
 
 test(0):- jpl_get('java.awt.Cursor', 'NE_RESIZE_CURSOR', $cursor.value ).
 

@@ -36,7 +36,7 @@
 :- module_transparent(expand_dictoo_decl/5).
 
 expand_dictoo_decl(SM,CM,Head,Body,dot_cache:dictoo_decl(OP ,SM,CM,M,Var,Memb,Value,Body)):- 
-  expand_dictoo_head(Head,OP,M,Var,Memb,Value).
+  expand_gvs_head(Head,OP,M,Var,Memb,Value).
 
   
 :- module_transparent(dictoo_decl_te/4).
