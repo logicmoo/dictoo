@@ -45,7 +45,7 @@ dictoo_decl_te(SM,M,(Head),OUT):- expand_dictoo_decl(SM,M,Head,true,OUT).
 
 :- module_transparent(use_dictoo_te/5).
 use_dictoo_te(MIN,P,SM,M,IN):-   
-   \+ current_prolog_flag(dictoo_syntax,false),
+   \+ current_prolog_flag(gvs_syntax,false),
    prolog_load_context(module, SM),  
   % (debugging(dictoo(decl))->trace;true),
    dot_cache:using_dot_type(decl,SM),
