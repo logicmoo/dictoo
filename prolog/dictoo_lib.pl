@@ -92,7 +92,7 @@ oo_bind(O,Value):- oo(O),put_attr(O,oo,binding(O,Value)).
 oo:attr_unify_hook(B,Value):- B = binding(_Var,Prev)->Prev.equals(Value);true.
 
 
-new_oo(_M,Self,NewSelf):- oo(Self),NewSelf=Self.
+new_oo(_M,Self,NewSelf):- trace,oo(Self),NewSelf=Self.
 
 logtalk_ready :- current_predicate(logtalk:current_logtalk_flag/2).
 
@@ -144,8 +144,9 @@ oo_call_dot_hook(M,A,B,C):-  (M:nb_current('$oo_stack',Was)->true;Was=[]),b_setv
 
 oo_call(_M,Self,Memb,Value):- notrace((atom(Memb),attvar(Self))),get_attr(Self, Memb, Value),!.
    
+oo_call(M,Self,Memb,Value):- var(Self),atom(Memb),!,on_bind(Self,oo_call(M,Self,Memb,Value)).
+oo_call(M,Self,Memb,Value):- var(Self),!,on_bind(Self,oo_call(M,Self,Memb,Value)).
 
-oo_call(M,Self,Memb,Value):- notrace((atom(Memb),var(Self),var(Value))),freeze(Self,freeze(Value,put_oo(M,Memb,Self, Value))).
 
 oo_call(M,'$was_dictoo'(CM,Self),Memb,Value):- var(Self),new_oo(M,Self,NewSelf),!,M:oo_call(CM,NewSelf,Memb,Value).
 
@@ -153,7 +154,7 @@ oo_call(_,'$'(NameSpace), Memb,Value):-
    dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),DMemb,Value,Call),member_func_unify(DMemb,Memb),!,
    show_call(dictoo(core), From:Call).
 
-oo_call(M,'$'(GVar),Memb,Value):- Memb==value,atom(GVar), M:nb_linkval(GVar,Value), freeze(Value,gvar_put(M, GVar, Value)),!.
+oo_call(M,'$'(GVar),Memb,Value):- Memb==value,atom(GVar), M:nb_linkval(GVar,Value), on_bind(Value,gvar_put(M, GVar, Value)),!.
 
 oo_call(M,'$'(Self),Memb,Value):-  is_gvar(M,Self,_Name),gvar_call(M,Self,Memb,Value),!.
 oo_call(M,'$'(GVar),add(Memb,V),'$was_dictoo'(M,$GVar)):- atom(GVar),M:nb_current(GVar,Self),!,
@@ -196,8 +197,8 @@ oo_call(M,'$'(NameSpace), Memb,Value):-  nonvar(NameSpace),dot_cache:dictoo_decl
 oo_call(_,M:Self,Memb,Value):- !,oo_call(M,Self,Memb,Value).
 oo_call(_,Self,Memb,Value):- Value =.. ['.', Self,Memb],!.
 oo_call(M,Self,Memb,Value):- throw(oo_call(M,Self,Memb,Value)).
-oo_call(M,Self,Memb,Value):- var(Value),!,freeze(Value, put_oo(M,Memb,Self, Value)).
-oo_call(M,Self,Memb,Value):- var(Value),!,freeze(Value, put_oo(M,Memb,Self, Value)).
+oo_call(M,Self,Memb,Value):- var(Value),!,on_bind(Value, put_oo(M,Memb,Self, Value)).
+oo_call(M,Self,Memb,Value):- var(Value),!,on_bind(Value, put_oo(M,Memb,Self, Value)).
 
 oo_call(M,Self,Memb,Value):- var(Value),!,Value='&'(M:Self,Memb).
 oo_call(M,Self,Memb,Value):- throw(oo_call(M,Self,Memb,Value)).
