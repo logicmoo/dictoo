@@ -154,6 +154,7 @@ oo_call(_,'$'(NameSpace), Memb,Value):-
    dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),DMemb,Value,Call),member_func_unify(DMemb,Memb),!,
    show_call(dictoo(core), From:Call).
 
+oo_call(M,'$'(GVar),Memb,Value):- Memb==value,atom(GVar),var(Value),M:nb_current(GVar,Value),!.
 oo_call(M,'$'(GVar),Memb,Value):- Memb==value,atom(GVar), M:nb_linkval(GVar,Value), on_bind(Value,gvar_put(M, GVar, Value)),!.
 
 oo_call(M,'$'(Self),Memb,Value):-  is_gvar(M,Self,_Name),gvar_call(M,Self,Memb,Value),!.

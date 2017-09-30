@@ -4,7 +4,7 @@
 :- use_module(library(must_trace)).
 :- endif.
 
-:- autoload.
+:- discontiguous example:test/1.
 
 :- use_module(library(dictoo)).
 :- use_module(library(dictoo_declarations)).
@@ -12,6 +12,8 @@
 :- if(exists_source(library(jpl))).
 :- use_module(library(jpl)).
 test(0.0):- jpl_get('java.awt.Cursor', 'NE_RESIZE_CURSOR', $cursor.value ).
+
+test(0.01):- writeln($cursor.value ).
 
 test(0.1):- $cursor.value == 7.
 
