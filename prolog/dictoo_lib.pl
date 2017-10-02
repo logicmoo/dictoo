@@ -150,6 +150,7 @@ oo_call(M,Self,Memb,Value):- var(Self),!,on_bind(Self,oo_call(M,Self,Memb,Value)
 
 oo_call(M,'$was_dictoo'(CM,Self),Memb,Value):- var(Self),new_oo(M,Self,NewSelf),!,M:oo_call(CM,NewSelf,Memb,Value).
 
+
 oo_call(_,'$'(NameSpace), Memb,Value):-  
    dot_cache:dictoo_decl(= ,_SM,_CM,From,'$'(NameSpace),DMemb,Value,Call),member_func_unify(DMemb,Memb),!,
    show_call(dictoo(core), From:Call).
