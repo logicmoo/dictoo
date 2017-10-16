@@ -3,7 +3,7 @@
        Type = decl,
          prolog_load_context(module, SM),
          (prolog_load_context(file, This), unload_file(This)),       
-         INFO = dot_cache:using_dot_type(Type,SM),
+         INFO = dot_cfg:using_dot_type(Type,SM),
          (clause(INFO,true)->true;asserta(INFO)),
          % debug(dictoo(Type),'~N% ~w~n',[INFO]),
          format(user_error,'~N% ~w~n',[INFO]))).
@@ -26,16 +26,16 @@
 */
 
 :- set_module(class(library)).
-:- multifile(dot_cache:using_dot_type/2).
-:- dynamic(dot_cache:using_dot_type/2).
+:- multifile(dot_cfg:using_dot_type/2).
+:- dynamic(dot_cfg:using_dot_type/2).
 :- reexport(library(dictoo_lib)).
-:- multifile(dot_cache:dictoo_decl/8).
-:- dynamic(dot_cache:dictoo_decl/8).
-:- discontiguous(dot_cache:dictoo_decl/8).
+:- multifile(dot_cfg:dictoo_decl/8).
+:- dynamic(dot_cfg:dictoo_decl/8).
+:- discontiguous(dot_cfg:dictoo_decl/8).
 
 :- module_transparent(expand_dictoo_decl/5).
 
-expand_dictoo_decl(SM,CM,Head,Body,dot_cache:dictoo_decl(OP ,SM,CM,M,Var,Memb,Value,Body)):- 
+expand_dictoo_decl(SM,CM,Head,Body,dot_cfg:dictoo_decl(OP ,SM,CM,M,Var,Memb,Value,Body)):- 
   expand_gvs_head(Head,OP,M,Var,Memb,Value).
 
   
@@ -48,7 +48,7 @@ use_dictoo_te(MIN,P,SM,M,IN):-
    \+ current_prolog_flag(gvs_syntax,false),
    prolog_load_context(module, SM),  
   % (debugging(dictoo(decl))->trace;true),
-   dot_cache:using_dot_type(decl,SM),
+   dot_cfg:using_dot_type(decl,SM),
    nonvar(P),
    nb_current('$term',Term),MIN==Term,
    strip_module(SM:MIN,M,IN),   
@@ -67,4 +67,4 @@ user:term_expansion(MIN,P,OUT,PO):-
    M:dictoo_decl_te(SM,M,IN,OUT),
    PO = P.
 
-
+:- set_prolog_flag(gvs_syntax,false).

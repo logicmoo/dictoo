@@ -3,7 +3,7 @@
        Type = core,
          prolog_load_context(module, SM),
          (prolog_load_context(file, This), unload_file(This)),       
-         INFO = dot_cache:using_dot_type(Type,SM),
+         INFO = dot_cfg:using_dot_type(Type,SM),
          (clause(INFO,true)->true;asserta(INFO)),
          % debug(dictoo(Type),'~N% ~w~n',[INFO]),
          format(user_error,'~N% ~w~n',[INFO]))).
@@ -23,14 +23,14 @@
 */
 
 :- set_module(class(library)).
-:- multifile(dot_cache:using_dot_type/2).
-:- dynamic(dot_cache:using_dot_type/2).
+:- multifile(dot_cfg:using_dot_type/2).
+:- dynamic(dot_cfg:using_dot_type/2).
 
-:- multifile(dot_cache:dictoo_decl/8).
-:- dynamic(dot_cache:dictoo_decl/8).
-:- discontiguous(dot_cache:dictoo_decl/8).
+:- multifile(dot_cfg:dictoo_decl/8).
+:- dynamic(dot_cfg:dictoo_decl/8).
+:- discontiguous(dot_cfg:dictoo_decl/8).
 
-:- dot_cache:using_dot_type(core,SM),
+:- dot_cfg:using_dot_type(core,SM),
    SM:use_module(library(dictoo_lib)).
 
 % :- verbose_expansion(on).

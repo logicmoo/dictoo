@@ -17,11 +17,25 @@ test(0.01):- writeln($cursor.value ).
 
 test(0.1):- $cursor.value == 7.
 
-test(0.11):- $cursor.value = 5.
+test(0.11):- ($cursor.value = 5).
 
 test(0.2):- $cursor.value == 5.
 
-test(0.21):- jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,else,try,catch,finally], $my_array.value).
+test(0.201):- $cursor.value = 7.
+
+test(0.21):- $my_array1.clear(), 
+  jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,else,try,catch,finally], $my_array1.value),
+  writeln($my_array1.value).
+
+test(0.22):- $my_array2.clear(), 
+  (jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,else,try,catch,finally], $my_array2.set())),
+  writeln($my_array2.value).
+
+test(0.23):- $my_array.clear(), 
+  (jpl_new(array(class([java,lang],['String'])), [for,while,do,if,then,else,try,catch,finally], $my_array.set())),
+  writeln($my_array.value).
+
+test(0.24):- writeln($my_array.value).
 
 test(0.3):- writeln($my_array.value.3 = then).
 
@@ -65,7 +79,7 @@ $flags.Name = X :- current_prolog_flag(Name,X).
 
 :- writeln($current_file.value).
 
-:- listing(dot_cache:dictoo_decl/8).
+:- listing(dot_cfg:dictoo_decl/8).
 
 :-  nb_setval('$mud_prefs',_{realname:dug}).
 
@@ -80,17 +94,19 @@ get_xy($a,$b):- $a.set(ab),$b.set()=ab.
 test(0):- $test.set("this is a test").
 
 test(1):- writeln($test.current()).
-test(2):- dict_create(Dict,foo,[key-value]) , X = Dict.key, writeln(X).
+test(2):- dict_create(Dict,foo,[key_test-value_success]) , X = Dict.key_test, writeln(X).
 % :- debug(gvar(syntax)).
 test(3):- asserta((call_after_logon((nb_current('$mud_prefs',Prefs),set_player_option(realname, Prefs.realname))))).
 test(4):- get_xy(X,Y), X.unify()=Y.unify().
 :- nodebug(gvar(syntax)).
-test(5):- ain(system_autoexec:(==>(==>(mpred_unload_option(never, $current_file.value))))).
+test(5):- \+ source_location(_,_)-> true; ain(system_autoexec:(==>(==>(mpred_unload_option(never, $current_file.value))))).
 test(6):- X.set(6), X = $six, writeln($six.value()).
 
 
-all_tests:- forall(clause(test(X),Body),(dmsg(test(X)),must(Body))).
 
+all_tests:- debug(dictoo(_)),forall(clause(test(X),Body),(dmsg(test(X)),must(Body))).
+
+:- nodebug(dictoo(_)).
 
 
 :- user:use_module(library(dictoo)).
