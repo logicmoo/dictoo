@@ -58,7 +58,8 @@
 fail_on_missing(G):- notrace(catch(G,error(existence_error(_,_),_),fail)).
 
 
-oo_get_attr(MVar,Attr,Value):- notrace((strip_module(MVar,M,Var),oo_call(M,Var,Attr,Value))).
+oo_get_attr(MVar,Attr,Value):- % notrace
+            ((strip_module(MVar,M,Var),oo_call(M,Var,Attr,Value))).
 
 oo_put_attr(MVar,Attr,Value):- notrace((strip_module(MVar,M,Var),oo_put(M,Attr,Var,Value))).
 
@@ -148,6 +149,7 @@ oo_set(UDT,Key,Value):- UDT='$VAR'(Name), atom(Name),!,nb_setarg(1,UDT, att(vn, 
 oo_set(UDT,Key,Value):- UDT='$VAR'(Att3),!,nb_setarg(1,UDT,att(Key,Value,Att3)).
 oo_set(UDT,Key,Value):- UDT='avar'(Att3),!,nb_setarg(1,UDT,att(Key,Value,Att3)).
 oo_set(UDT,Key,Value):- UDT='avar'(_,Att3),!,nb_setarg(2,UDT, att(Key,Value,Att3)).
+oo_set(UDT,Key,Value):- UDT=att(_,_,_),!,nb_setattr(UDT,Key,Value).
 oo_set(UDT,Key,Value):-is_rbtree(UDT),!,rb_insert(UDT,Key,Value,NewUDT),arg(1,NewUDT,Arg1),nb_setarg(1,UDT,Arg1),arg(2,NewUDT,Arg2),nb_setarg(2,UDT,Arg2).
 oo_set(UDT,Key,Value):-is_assoc(UDT),!,put_assoc(Key,UDT,Value,NewUDT),nb_copy(NewUDT,UDT).
 oo_set(UDT,Key,Value):-is_list(UDT),!,((member(KV,UDT),get_kv(KV,K,_),Key==K,nb_set_kv(KV,K,Value))->true;(nb_copy([Key-Value|UDT],UDT))).
@@ -176,6 +178,7 @@ oo_copy_term(UDT,NewUDT):- copy_term(UDT,NewUDT).
 
 oo_put(M,Key, UDT,Value):- attvar(UDT),!,M:put_attr(UDT,Key, Value).                           
 oo_put(_M,Key,UDT,Value):- var(UDT),!,put_attr(UDT,Key,Value),!.
+oo_put(_M,Key,UDT,Value):- UDT=att(_,_,_),!,nb_setattr(UDT,Key,Value).
 oo_put(M,Key, UDT, Value):- is_dict(UDT),!,M:put_dict(Key, UDT, Value).
 % todo index these by sending in the UDT on two args
 oo_put(_M,Key,UDT,Value):- UDT='$VAR'(Name), atom(Name),!,setarg(1,UDT, att(vn, Name, att(Key,Value, []))).
@@ -227,8 +230,8 @@ oo_call(M,DVAR, Memb,Value):- dvar_name(M,DVAR,_,NameSpace),
 
 
 
-oo_call(M,DVAR,Memb,Value):- Memb==value, dvar_name(M,DVAR,_,GVar), atom(GVar), var(Value),M:nb_current_value(GVar,Value),!.
-oo_call(M,DVAR,Memb,Value):- Memb==value, dvar_name(M,DVAR,_,GVar), atom(GVar),!,must( M:nb_link_value(GVar,Value)),!, on_bind(Value,gvar_put(M, GVar, Value)),!.
+%oo_call(M,DVAR,Memb,Value):- Memb==value, dvar_name(M,DVAR,_,GVar), atom(GVar), var(Value),M:nb_current_value(GVar,Value),!.
+%oo_call(M,DVAR,Memb,Value):- Memb==value, dvar_name(M,DVAR,_,GVar), atom(GVar),!,must( M:nb_link_value(GVar,Value)),!, on_bind(Value,gvar_put(M, GVar, Value)),!.
 
 oo_call(_M,Self,Memb,Value):- notrace((atom(Memb),attvar(Self))),get_attr(Self, Memb, Value),!.
                                                  
@@ -271,7 +274,7 @@ oo_call(M,jpl(Self),Memb,Value):- !, M:oo_jpl_call(Self, Memb, Value).
 oo_call(M,jclass(Self),Memb,Value):- !, M:oo_jpl_call(Self, Memb, Value).
 oo_call(M,class(Self),Memb,Value):- M:fail_on_missing(cli_call(Self, Memb, Value)),!.
 oo_call(M,DVAR,Memb,Value):- dvar_name(M,DVAR,_,GVar), atom(GVar),
- notrace(M:nb_current_value(GVar,Self)),oo_call(M,Self,Memb,Value),
+ (M:nb_current_value(GVar,Self)),oo_call(M,Self,Memb,Value),
  M:nb_set_value(GVar,Self).
 
 oo_call(M,Self,Memb,Value):- fail_on_missing(jpl_is_ref(Self)),!,M:oo_jpl_call(Self, Memb, Value).
@@ -287,7 +290,7 @@ oo_call(M,'&'(_,DeRef),Memb,Value):- oo_call(M,DeRef,Memb,Value).
 
 oo_call(M,Self,Memb,Value):- nonvar(Value),trace_or_throw(oo_call(M,Self,Memb,Value)).
 
-oo_call(M,Self,Memb,Value):- notrace((oo_deref(M,Self,NewSelf)-> NewSelf\==Self)),!,oo_call(M,NewSelf,Memb,Value).
+oo_call(M,Self,Memb,Value):- ((oo_deref(M,Self,NewSelf)-> NewSelf\==Self)),!,oo_call(M,NewSelf,Memb,Value).
 
 % oo_call(M,Self,Memb,Value):- gvar_interp(M,Self,Self,Memb,Value).
 
@@ -296,6 +299,7 @@ oo_call(M,DVAR,Memb,Value):- dvar_name(M,DVAR,_,NameSpace), nonvar(NameSpace),
   throw(M:dot_cfg:dictoo_decl(= ,From,NameSpace,Memb-->Unk,Value,Call)),fail.
 
 oo_call(_,M:Self,Memb,Value):- !,oo_call(M,Self,Memb,Value).
+oo_call(_,_Self,_Memb,_Value):- !,fail.
 oo_call(_,Self,Memb,Value):- Value =.. ['.', Self,Memb],!.
 
 oo_call(M,Self,Memb,Value):- throw(oo_call(M,Self,Memb,Value)).
