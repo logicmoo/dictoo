@@ -163,7 +163,16 @@ nb_copy(NewMap,Map):-functor(NewMap,F,A),functor(Map,F,A),nb_copy(A,NewMap,Map).
 nb_copy(A,NewMap,Map):- arg(A,NewMap,E),nb_setarg(A,NewMap,E), (A==1-> true ; Am1 is A-1, (b_copy(Am1,NewMap,Map))).
 
 
-get_kv(KV,K,V):-compound(KV),(KV=..[_,K,V]->true;KV=..[K,V]).
+%get_kv(KV,K,V):-compound(KV),(KV=..[_,K,V]->true;KV=..[K,V]).
+%% get_kv( ?KV, ?X, ?Y) is semidet.
+%
+% Get Kv.
+%
+get_kv(X=Y,X,Y):- !.
+get_kv(X-Y,X,Y):- !.
+get_kv(KV,X,Y):- functor(KV,_,1),KV=..[X,Y],!.
+get_kv(KV,X,Y):- arg(1,KV,X),arg(2,KV,Y),!.
+
 b_put_kv(KV,_,V):- functor(KV,_,A),setarg(A,KV,V).
 nb_put_kv(KV,_,V):- functor(KV,_,A),nb_setarg(A,KV,V).
 
