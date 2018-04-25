@@ -228,7 +228,7 @@ is_oo_invokable(Was,Ref):- strip_module(Was,M,Self),oo_deref(M,Self,Ref),!,((Sel
 :- module_transparent(oo_call/4).
 :- module_transparent(oo_call_dot_hook/4).
 
-:- nb_setval('$oo_stack',[]).
+:- thread_initialization(nb_setval('$oo_stack',[])).
 oo_call_dot_hook(M,Self, Func, Value):- is_dict(Self), M:dot_dict(Self, Func, Value),!.
 oo_call_dot_hook(M,A,B,C):-  (M:nb_current('$oo_stack',Was)->true;Was=[]),b_setval('$oo_stack',['.'(A,B,C)|Was]),oo_call(M,A,B,C).
 
