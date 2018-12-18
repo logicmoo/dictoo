@@ -40,7 +40,7 @@
 :- set_module(class(library)).
 :- reexport(library(gvar_lib)).
 :- use_module(library(dicts)).
-:- use_module(library(hybrid_db/attvar_serializer)).
+:- use_module(library(logicmoo/attvar_serializer)).
 
 :- multifile(dot_cfg:using_dot_type/2).
 :- dynamic(dot_cfg:using_dot_type/2).
