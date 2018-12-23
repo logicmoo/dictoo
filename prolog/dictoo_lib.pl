@@ -304,7 +304,7 @@ oo_call(M,Self,Memb,Value):- ((oo_deref(M,Self,NewSelf)-> NewSelf\==Self)),!,oo_
 
 oo_call(M,DVAR,Memb,Value):- dvar_name(M,DVAR,_,NameSpace), nonvar(NameSpace),
   dot_cfg:dictoo_decl(= ,_SM,_CM,From,DVAR,Unk,Value,Call),!,
-  throw(M:dot_cfg:dictoo_decl(= ,From,NameSpace,Memb-->Unk,Value,Call)),fail.
+  throw(M:dot_cfg=dictoo_decl(= ,From,NameSpace,Memb-->Unk,Value,Call)),fail.
 
 oo_call(_,M:Self,Memb,Value):- !,oo_call(M,Self,Memb,Value).
 oo_call(_,_Self,_Memb,_Value):- !,fail.
