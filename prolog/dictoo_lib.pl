@@ -335,8 +335,8 @@ oo_deref(M,Obj,RObj):- var(Obj),!,M:once(get_attr(Obj,oo,binding(_,RObj));Obj=RO
 oo_deref(_,Value,Value):- \+ compound(Value),!.
 
 oo_deref(M,DVAR,Value):- dvar_name(M,DVAR,_,GVar), atom(GVar),notrace((M:nb_current_value(GVar,ValueM))),!,oo_deref(M,ValueM,Value).
-oo_deref(M,cl_eval(Call),Result):-is_list(Call),!,M:fail_on_missing(cl_eval(Call,Result)).
-oo_deref(M,cl_eval(Call),Result):-!,nonvar(Call),oo_deref(M,Call,CallE),!,M:call(CallE,Result).
+oo_deref(M,inline_cl_eval(Call),Result):-is_list(Call),!,M:fail_on_missing(cl_eval(Call,Result)).
+oo_deref(M,inline_cl_eval(Call),Result):-!,nonvar(Call),oo_deref(M,Call,CallE),!,M:call(CallE,Result).
 %oo_deref(M,Value,Value):- M:fail_on_missing(jpl_is_ref(Value)),!.
 % %oo_deref(M,[A|B],Result):-!, maplist(oo_deref(M),[A|B],Result).
 % %oo_deref(M,Call,Result):- call(Call,Result),!.
