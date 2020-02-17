@@ -8,7 +8,8 @@
          % debug(dictoo(Type),'~N% ~w~n',[INFO]),
          format(user_error,'~N% ~w~n',[INFO]))).
 :- endif.
-:- module(dictoo, [ op(2,fx,?) ]).
+:- module(dictoo, [  ]).
+:- op(2,fx,prolog:'?').
 
 /** <module> dictoo - Dict-like OO Syntax Pack
 

@@ -203,7 +203,7 @@ nb_put_kv(KV,_,V):- functor(KV,_,A),nb_setarg(A,KV,V).
 % oo_get_attr(V,A,Value):- trace_or_throw(oo_get_attr(V,A,Value)).
 
 
-oo_put_dict5(M,Key,UDT,Value, NewUDT):- is_dict(UDT),!,M:put_dict(Key,UDT,Value, NewUDT).
+oo_put_dict5(M,Key,UDT,Value, NewUDT):- is_dict(UDT),!,M:m_put_dict(Key,UDT,Value, NewUDT).
 oo_put_dict5(M,Key,UDT,Value, NewUDT):- oo_copy_term(UDT,NewUDT),oo_put_dict(M,Key,NewUDT,Value).
 
 oo_copy_term(UDT,NewUDT):- copy_term(UDT,NewUDT).
@@ -211,7 +211,7 @@ oo_copy_term(UDT,NewUDT):- copy_term(UDT,NewUDT).
 oo_put_dict( M,Key,UDT,Value):- var(UDT),!,(attvar(UDT)-> M:put_attr(UDT,Key,Value);do_but_warn(put_attr(UDT,Key,Value))).
 oo_put_dict( M,Key,UDT,Value):- \+ compound(UDT),!,oo_derefed(M,UDT,DREF),!,oo_put_dict(M,DREF,Key,Value).
 oo_put_dict(_M,Key,UDT,Value):- compound_name_arity(UDT,att,3),nb_setattr(UDT,Key,Value).
-oo_put_dict( M,Key,UDT,Value):- is_dict(UDT),!,M:put_dict(Key,UDT,Value).
+oo_put_dict( M,Key,UDT,Value):- is_dict(UDT),!,M:m_put_dict(Key,UDT,Value).
 oo_put_dict(_M,Key,UDT,Value):- is_rbtree(UDT),!,rb_insert(UDT,Key,Value,NewUDT),arg(1,NewUDT,Arg1),setarg(1,UDT,Arg1),arg(2,NewUDT,Arg2),setarg(2,UDT,Arg2).
 oo_put_dict(_M,Key,UDT,Value):- is_assoc(UDT),!,put_assoc(Key,UDT,Value,NewUDT),b_copy(NewUDT,UDT).
 oo_put_dict(_M,Key,UDT,Value):- is_list(UDT),!,((member(KV,UDT),get_kv(KV,K,_),Key==K,set_kv(KV,K,Value))->true;(b_copy([Key-Value|UDT],UDT))).
@@ -228,7 +228,8 @@ oo_get_dict(Key,UDT,Value):- strip_module(UDT,M,Self), oo_get_dict(M,Key,Self, V
 
 oo_get_dict(M,Key,Self, Value):- oo_call(M,Self,Key,Value).
 
-put_dict(Key,Map,Value):- ((get_dict(Key,Map,_),b_set_dict(Key,Map,Value))->true;(oo_put_extender(Map,Ext),oo_put_attr(Ext,Key,Value))).
+m_put_dict(Key,Map,Value):- ((get_dict(Key,Map,_),b_set_dict(Key,Map,Value))->true;
+ (oo_put_extender(Map,Ext),oo_put_attr(Ext,Key,Value))).
 
 
 oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
@@ -269,8 +270,10 @@ oo_call(M,DVAR, Memb,Value):- dvar_name(M,DVAR,_,NameSpace),
 
 oo_call(_M,Self,Memb,Value):- notrace((atom(Memb),attvar(Self))),get_attr(Self, Memb, Value),!.
                                                  
-oo_call(M,Self,Memb,Value):- var(Self),atom(Memb),!,trace,on_bind(Self,oo_call(M,Self,Memb,Value)).
-oo_call(M,Self,Memb,Value):- var(Self),!,trace,on_bind(Self,oo_call(M,Self,Memb,Value)).
+oo_call(M,Self,Memb,Value):- var(Self),atom(Memb),!, % trace,
+     on_bind(Self,oo_call(M,Self,Memb,Value)).
+oo_call(M,Self,Memb,Value):- var(Self),!, % trace,
+     on_bind(Self,oo_call(M,Self,Memb,Value)).
 
 oo_call(_M,'$VAR'(Name),N,V):- atom(Name),!,N=vn,V=Name.
 oo_call(_M,'$VAR'(Att3),A,Value):- !, put_attrs(NewVar,Att3),get_attr(NewVar,A,Value).
@@ -290,7 +293,7 @@ oo_call(M,DVAR,add(Memb,V),'$was_dictoo'(M,DVAR)):-
   dvar_name(M,DVAR,_,GVar), 
   notrace((atom(GVar),M:nb_current_value(GVar,Self))),
   is_dict(Self),!,
-  M:put_dict(Memb,Self,V,NewSelf),
+  M:m_put_dict(Memb,Self,V,NewSelf),
   M:nb_set_value(GVar,NewSelf).
 
 oo_call(M,DVAR,Memb,Value):- dvar_name(M,DVAR,_,GVar), atom(GVar), gvar_call(M, GVar, Memb, Value),!.

@@ -1,7 +1,7 @@
 name(dictoo).
 title('Dict-like OO Syntax').
 
-version('1.2.111').
+version('1.3.111').
 download('https://github.com/TeamSPoon/dictoo/releases/*.zip').
 
 author( 'Douglas R. Miles', 'logicmoo@gmail.com' ).
