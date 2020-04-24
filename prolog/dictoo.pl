@@ -30,6 +30,7 @@
 :- multifile(dot_cfg:dictoo_decl/8).
 :- dynamic(dot_cfg:dictoo_decl/8).
 :- discontiguous(dot_cfg:dictoo_decl/8).
+:- system:use_module(library(logicmoo_common)).
 
 :- dot_cfg:using_dot_type(core,SM),
    SM:use_module(library(dictoo_lib)).
