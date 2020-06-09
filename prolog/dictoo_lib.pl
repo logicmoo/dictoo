@@ -138,7 +138,7 @@ new_oo(_M,Self,NewSelf):- oo(Self)->NewSelf=Self.
 
 logtalk_ready :- current_predicate(logtalk:current_logtalk_flag/2).
 
-is_logtalk_object(O):- logtalk_ready, call(logtalk:current_object(O)).
+is_logtalk_object(O):- logtalk_ready, call(call,logtalk:current_object(O)).
 
 nb_setattr(Att,Key,Value):-nb_setattr(Att,Att,Key,Value).
 nb_setattr(att(Key,_OldValue,_),Atts,Key,Value):-!,nb_setarg(2,Atts,Value).
@@ -187,6 +187,7 @@ nb_copy(A,NewMap,Map):-    arg(A,NewMap,E),nb_setarg(A,NewMap,E), (A==1-> true ;
 
 
 %get_kv(KV,K,V):-compound(KV),(KV=..[_,K,V]->true;KV=..[K,V]).
+
 %% get_kv( ?KV, ?X, ?Y) is semidet.
 %
 % Get Kv.
@@ -196,11 +197,16 @@ get_kv(X-Y,X,Y):- !.
 get_kv(KV,X,Y):- functor(KV,_,1),KV=..[X,Y],!.
 get_kv(KV,X,Y):- arg(1,KV,X),arg(2,KV,Y),!.
 
+% @TODO WRONG?!
+set_kv(KV,K,V):- b_put_kv(KV,K,V).
+nb_set_kv(KV,K,V):- nb_put_kv(KV,K,V).
+
 b_put_kv(KV,_,V):- functor(KV,_,A),setarg(A,KV,V).
 nb_put_kv(KV,_,V):- functor(KV,_,A),nb_setarg(A,KV,V).
 
 
 % oo_get_attr(V,A,Value):- trace_or_throw(oo_get_attr(V,A,Value)).
+
 
 
 oo_put_dict5(M,Key,UDT,Value, NewUDT):- is_dict(UDT),!,M:m_put_dict(Key,UDT,Value, NewUDT).
@@ -412,9 +418,10 @@ eval_oo_function(M,put(Key,Value), _, UDT,NewUDT) :-
     ->  oo_put_dict5(M,Key,UDT,Value, NewUDT)
     ;   put_oo_path(M,Key,UDT,Value, NewUDT)
     ).
-eval_oo_function(M,put(New), _, UDT,NewUDT) :-
+eval_oo_function(M,put(New), _Tag, UDT,NewUDT) :-
     !,
-    oo_put_dict5(M,New, UDT,NewUDT).
+    % put_dict(New, Dict, NewDict).
+    oo_put_dict(M,New, UDT,NewUDT).
 eval_oo_function(M,Func, Tag, UDT,Value) :-
     M:call(Tag:Func, UDT,Value).
 
@@ -445,7 +452,7 @@ get_oo_path(M,Path/Key,UDT,Old, NewUDT,New) :-
         oo_put_dict5(M,Key,OldD, New, NewD)
     ).
 get_oo_path(M,Key,UDT,Old, NewUDT,New) :-
-    oo_get_dict5(M,Key,UDT,Old, NewUDT,New),
+    oo_get_dict(M,Key,UDT,Old, NewUDT,New),
     is_oo(M,Old),
     !.
 get_oo_path(M,Key,UDT,_{}, NewUDT,New) :-
