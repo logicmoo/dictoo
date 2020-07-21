@@ -53,7 +53,7 @@
 :- nodebug(dictoo(syntax)).
 :- nodebug(dictoo(goal_expand)).
 
-:- autoload(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
+%:- autoload(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
 :- autoload(library(backcomp),[string_to_atom/2]).
 
 % :- use_module(atts).
@@ -240,7 +240,7 @@ m_put_dict(Key,Map,Value):- ((get_dict(Key,Map,_),b_set_dict(Key,Map,Value))->tr
  (oo_put_extender(Map,Ext),oo_put_attr(Ext,Key,Value))).
 
 
-oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,jpl_get(A,B,C).
+oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,fail_on_missing(jpl_get(A,B,C)).
 oo_jpl_call(A,B,C):- (compound(B)->compound_name_arguments(B,H,L);(H=B,L=[])),fail_on_missing(jpl_call(A,H,L,C)),!.
 oo_jpl_call(A,B,C):- catch(fail_on_missing(jpl_get(A,B,C)),E,(debug(dictoo(_),'~N~w,~n',[E:jpl_get(A,B,C)]),fail)).
 
