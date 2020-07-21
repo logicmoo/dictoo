@@ -161,7 +161,7 @@ oo_set(UDT,Key,Value):- is_rbtree(UDT),!,rb_insert(UDT,Key,Value,NewUDT),nb_copy
 oo_set(UDT,Key,Value):- is_assoc(UDT),!, put_assoc(Key,UDT,Value,NewUDT),nb_copy(NewUDT,UDT).
 oo_set(UDT,Key,Value):- UDT=..[U,D|T], oo_nb_set_varholder(U,D,T,UDT,Key,Value).
 oo_set(UDT,Key,Value):- is_list(UDT),!,((member(KV,UDT),get_kv(KV,K,_),Key==K,nb_set_kv(KV,K,Value))->true;(nb_copy([Key-Value|UDT],UDT))).
-oo_set(UDT,Key,Value):- fail_on_missing(jpl_is_ref(UDT)),jpl_set(UDT,Key,Value).
+oo_set(UDT,Key,Value):- fail_on_missing(jpl_is_ref(UDT)),fail_on_missing(jpl_set(UDT,Key,Value)).
 %oo_set(UDT,Key,Value):- trace_or_throw(oo_set(UDT,Key,Value)).
 
 
