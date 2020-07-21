@@ -53,7 +53,9 @@
 :- nodebug(dictoo(syntax)).
 :- nodebug(dictoo(goal_expand)).
 
-% :- use_module(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
+:- autoload(library(jpl),[jpl_set/3,jpl_get/3,jpl_call/4]).
+:- autoload(library(backcomp),[string_to_atom/2]).
+
 % :- use_module(atts).
 
 :- meta_predicate(fail_on_missing(*)).
