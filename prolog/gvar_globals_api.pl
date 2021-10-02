@@ -15,7 +15,7 @@
           tracker_reset/1,
           get_current_tracker/2,
           show_name_values/0,
- push_tracker_frame/0
+          push_tracker_frame/0
  ]).
 /** <module> gapi - Global Variable Strorage
 
@@ -220,7 +220,7 @@ gv_nop(_).
 
 b_get_oo_value(Tree,N,V):-  oo_lookup(N,RBV,Tree),!,arg(1,RBV,V).
 nb_get_oo_value(Ctx,N,V):- b_get_value(Ctx,N,V).
-reset_oo(Tree):- oo_empty(X),arg(1,X,L),arg(2,X,R),nb_setarg(1,Tree,L),nb_setarg(2,Tree,R).
+reset_oo(Tree):- oo_empty(X),functor(Tree,_,A), forall(between(1,A,N),(arg(N,X,R),nb_setarg(N,Tree,R))).
 oo_put_value(Tree,N,V):- % as_ref(Tree0,Tree),
   (oo_lookup(N,RBV,Tree)-> setarg(1,RBV,V) ; (RBV=oov([]),nb_oo_insert(Tree,N,RBV),setarg(1,RBV,V))).
 nb_oo_link(Tree,N,V):- 

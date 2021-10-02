@@ -25,26 +25,26 @@
   oo_get_dict/3  
   ]).
 
-/** <module> dictoo_lib - Dict-like OO Syntax Pack
+/** <module> Utility LOGICMOO DICTOO  Dict-like OO Syntax Pack
+Now everyone can get dictoo! Dict-like OO Syntax - allows dictionary to be used in object orientated ways, common interface for hashmaps, dictionaries trees, object-orientated objects used in the same ways.
 
-    Author:        Douglas R. Miles
+- @author Douglas R. Miles
+- @license LGPL
+ Author:        Douglas R. Miles
     E-mail:        logicmoo@gmail.com
-    WWW:           http://www.logicmoo.org
+    WWW:           [http://www.logicmoo.org]
     Copyright (C): 2017
-                       
-    This program is free software; you can redistribute it and/or
-    modify it.
 
 */
-
 
 
 :- set_module(class(library)).
 :- set_prolog_flag(generate_debug_info, false).
 :- reexport(library(gvar_lib)).
 :- use_module(library(dicts)).
+:- if(\+ current_module(attvar_serializer)).
 :- use_module(library(logicmoo/attvar_serializer)).
-
+:- endif.
 :- multifile(dot_cfg:using_dot_type/2).
 :- dynamic(dot_cfg:using_dot_type/2).
 
@@ -211,7 +211,7 @@ nb_put_kv(KV,_,V):- functor(KV,_,A),nb_setarg(A,KV,V).
 
 
 
-oo_put_dict5(M,Key,UDT,Value, NewUDT):- is_dict(UDT),!,M:m_put_dict(Key,UDT,Value, NewUDT).
+oo_put_dict5(M,Key,UDT,Value, NewUDT):- is_dict(UDT),!,M:put_dict(Key,UDT,Value, NewUDT).
 oo_put_dict5(M,Key,UDT,Value, NewUDT):- oo_copy_term(UDT,NewUDT),oo_put_dict(M,Key,NewUDT,Value).
 
 oo_copy_term(UDT,NewUDT):- copy_term(UDT,NewUDT).
