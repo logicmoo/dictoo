@@ -136,6 +136,8 @@ oo_get_extender(_,_):-fail.
 
 oo_put_extender(_,_):-fail.
 
+
+:- export(new_oo/3).
 new_oo(_M,Self,NewSelf):- oo(Self)->NewSelf=Self.
 
 logtalk_ready :- current_predicate(logtalk:current_logtalk_flag/2).
@@ -157,7 +159,7 @@ oo_set(UDT,Key,Value):- var(UDT),!,do_but_warn(put_attr(UDT,Key,Value)),!.
 oo_set(UDT,Key,Value):- oo_derefed(UDT,DREF),!,oo_set(DREF,Key,Value).
 oo_set(UDT,Key,Value):- is_dict(UDT),!,nb_set_dict(Key,UDT,Value).
 %oo_set(UDT,Key,Value):- is_rbtree(UDT),!,nb_rb_insert(UDT, Key, Value),!.
-oo_set(UDT,Key,Value):- is_rbtree(UDT),!,rb_insert(UDT,Key,Value,NewUDT),nb_copy(2,NewUDT,UDT).
+oo_set(UDT,Key,Value):- is_rbtree(UDT),!,nb_rb_insert(UDT,Key,Value,NewUDT),nb_copy(2,NewUDT,UDT).
 oo_set(UDT,Key,Value):- is_assoc(UDT),!, put_assoc(Key,UDT,Value,NewUDT),nb_copy(NewUDT,UDT).
 oo_set(UDT,Key,Value):- UDT=..[U,D|T], oo_nb_set_varholder(U,D,T,UDT,Key,Value).
 oo_set(UDT,Key,Value):- is_list(UDT),!,((member(KV,UDT),get_kv(KV,K,_),Key==K,nb_set_kv(KV,K,Value))->true;(nb_copy([Key-Value|UDT],UDT))).
@@ -220,7 +222,7 @@ oo_put_dict( M,Key,UDT,Value):- var(UDT),!,(attvar(UDT)-> M:put_attr(UDT,Key,Val
 oo_put_dict( M,Key,UDT,Value):- \+ compound(UDT),!,oo_derefed(M,UDT,DREF),!,oo_put_dict(M,DREF,Key,Value).
 oo_put_dict(_M,Key,UDT,Value):- compound_name_arity(UDT,att,3),nb_setattr(UDT,Key,Value).
 oo_put_dict( M,Key,UDT,Value):- is_dict(UDT),!,M:m_put_dict(Key,UDT,Value).
-oo_put_dict(_M,Key,UDT,Value):- is_rbtree(UDT),!,rb_insert(UDT,Key,Value,NewUDT),arg(1,NewUDT,Arg1),setarg(1,UDT,Arg1),arg(2,NewUDT,Arg2),setarg(2,UDT,Arg2).
+oo_put_dict(_M,Key,UDT,Value):- is_rbtree(UDT),!,nb_rb_insert(UDT,Key,Value,NewUDT),arg(1,NewUDT,Arg1),setarg(1,UDT,Arg1),arg(2,NewUDT,Arg2),setarg(2,UDT,Arg2).
 oo_put_dict(_M,Key,UDT,Value):- is_assoc(UDT),!,put_assoc(Key,UDT,Value,NewUDT),b_copy(NewUDT,UDT).
 oo_put_dict(_M,Key,UDT,Value):- is_list(UDT),!,((member(KV,UDT),get_kv(KV,K,_),Key==K,set_kv(KV,K,Value))->true;(b_copy([Key-Value|UDT],UDT))).
 % todo index these by sending in the UDT on two args
@@ -238,7 +240,7 @@ oo_get_dict(M,Key,Self, Value):- oo_call(M,Self,Key,Value).
 
 m_put_dict(Key,Map,Value):- ((get_dict(Key,Map,_),b_set_dict(Key,Map,Value))->true;
  (oo_put_extender(Map,Ext),oo_put_attr(Ext,Key,Value))).
-
+:- export(m_put_dict/3).
 
 oo_jpl_call(A,B,C):- (integer(B);B==length; B= (_-_)),!,fail_on_missing(jpl_get(A,B,C)).
 oo_jpl_call(A,B,C):- (compound(B)->compound_name_arguments(B,H,L);(H=B,L=[])),fail_on_missing(jpl_call(A,H,L,C)),!.
@@ -464,7 +466,7 @@ get_oo_path(M,Key,UDT,_{}, NewUDT,New) :-
 :- dynamic(is_oo_class_field/2).
 :- multifile(dot_cfg:dictoo_decl/8).
 :- dynamic(dot_cfg:dictoo_decl/8).
-:- discontiguous(dot_cfg:dictoo_decl/8).
+%:- discontiguous(dot_cfg:dictoo_decl/8).
 
 % is_oo_hooked(M,Self,_Func,_Value):- M:is_oo(M,Self),!.
 is_oo_hooked(M,Self,_Func,_Value):- M:is_oo_invokable(Self,_),!.
@@ -499,12 +501,11 @@ gvs:dot_overload_hook(M,NewName, Memb, Value):- dot_cfg:using_dot_type(_,M)
 :- multifile(gvs:is_dot_hook/4).
 :- dynamic(gvs:is_dot_hook/4).
 :- module_transparent(gvs:is_dot_hook/4).
+
+gvs:is_dot_hook(_,_,_,_):-!.
 gvs:is_dot_hook(M,Self,Func,Value):- dot_cfg:using_dot_type(_,M) 
   -> is_oo_hooked(M,Self,Func,Value),!.
 
-
-:- 
-   gvar_file_predicates_are_exported,
-   gvar_file_predicates_are_transparent.
+:- include(gvar_fixup_exports).
 
 
