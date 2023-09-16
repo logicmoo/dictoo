@@ -131,7 +131,7 @@ nb_get_value(N,V):- context_default(Ctx), nb_get_value(Ctx,N,V),!.
 :- export(nb_get_value/3).
 nb_get_value(Ctx,N,V):- b_get_value(Ctx,N,V).
 
-reset_oo_tree(Tracker):- oo_empty(X),arg(1,X,L),arg(2,X,R),nb_setarg(1,Tracker,L),nb_setarg(2,Tracker,R).
+reset_oo_tree(Tracker):- oo_empty(X),compound(X),arg(1,X,L),arg(2,X,R),nb_setarg(1,Tracker,L),nb_setarg(2,Tracker,R).
 
 tracker_reset(Ctx):-get_current_tracker(Ctx,Tracker),reset_oo_tree(Tracker).
 tracker_reset:- oo_empty(Tracker),nb_setval('$tracker',[Tracker]).
